@@ -1,0 +1,15 @@
+name: disqover
+version: '0.0.1'
+services:
+  frontend:
+    build:
+      dockerfile: Dockerfile
+      context: ./src/frontend
+    ports:
+      - 3000:3000
+  backend:
+    build:
+      dockerfile: Dockerfile
+      context: ./src/backend
+    ports:
+      - 5000:5000
