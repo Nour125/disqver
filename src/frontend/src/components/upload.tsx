@@ -12,6 +12,7 @@ export const UploadFile: React.FC = () => {
     const [qelOverview, setQelOverview] = useState<boolean>(false);
 
     // handleUpload should save the uploaded file to the directory src\backend\files and then call the function qel-overview
+    
     const handleUpload = async () => {
         if (!selectedFile) {
           console.error("No file selected");
