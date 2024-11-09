@@ -51,10 +51,6 @@ export const QelOverview: React.FC = () => {
         console.log("Fetching sample objects");
            // axios.get('http://127.0.0.1:8000/overview/)
     }
-    const handleSample = async () => {
-        console.log("Fetching sample objects");
-           // axios.get('http://127.0.0.1:8000/overview/)
-    }
 
 
     return (
@@ -76,7 +72,7 @@ export const QelOverview: React.FC = () => {
                             <FaCloud className="text-secondary" />
                             <span><code>{objectNumber}</code> Object of <code>{objectTypes}</code> Object Types</span>
                             {<Button size="sm" onClick={() => setModalShow(true)} variant="light">Show sample</Button>}
-                            <SampleModal show={modalShow} onHide={() => setModalShow(false)} />
+                            <SampleModal tableName = "Objects" show={modalShow} onHide={() => setModalShow(false)} />
                         </div>
                     </Col>
                 </Row>
