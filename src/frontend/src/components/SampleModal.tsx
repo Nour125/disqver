@@ -6,25 +6,19 @@ import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import "ts-sql-query/Connection"
 import Table from 'react-bootstrap/Table';
-import { tableName } from 'ts-sql-query/utils/symbols';
 
-// get the Sample table from the endpoint
-const handleSample = async (tableName: string): Promise<JSON | null> => {
-    try {
-        const response = await axios.get('http://127.0.0.1:8000/uploadfile/' + tableName );
-        console.log(response.data)
-        return response.data;
-    } catch (error) { 
-        console.error("Error getting sample", error);
-        return null;
-    }
-};
+
+interface JsonData {
+  [column: string]: {
+    [rowId: string]: string | number | null;
+  };
+}
 
 
 
 export function SampleModal({ tableName, ...props }: any) {
-  const [sampleData, setSampleData] = useState<JSON | null>(null);
-  const [key, setKey] = useState(0);
+  const [sampleData, setSampleData] = useState<JsonData | null>(null);
+  const [key, setKey] = useState(0);  
 
 
 
@@ -36,10 +30,24 @@ export function SampleModal({ tableName, ...props }: any) {
     fetchSample();
   }, [tableName]);
 
+  // get the Sample table from the endpoint
+  const handleSample = async (tableName: string): Promise<JsonData | null> => {
+    try {
+        const response = await axios.get('http://127.0.0.1:8000/uploadfile/' + tableName );
+        console.log(response.data)
+        return response.data;
+    } catch (error) { 
+        console.error("Error getting sample", error);
+        return null;
+    }
+    };
+
   const handleSampleModal = async (): Promise<any | null>=> {
-    console.log("Fetching sample objects");
+    const newSampleData = await handleSample(tableName);
+    setSampleData(newSampleData);
     setKey((prevKey) => prevKey + 1); // Increment key to remount the component
   }
+
 
   return (
     <div key={key}>
@@ -50,26 +58,49 @@ export function SampleModal({ tableName, ...props }: any) {
       centered
     >
       <Modal.Header closeButton>
-        <Modal.Title id="contained-modal-title-vcenter">
-          Modal heading
-        </Modal.Title>
+      <Modal.Title>Sample Data for {tableName}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <h4>Centered Modal</h4>
-        <p >
-          Cras mattis consectetur purus sit amet fermentum. Cras justo odio,
-          dapibus ac facilisis in, egestas eget quam. Morbi leo risus, porta ac
-          consectetur ac, vestibulum at eros.
-          <span><code>{JSON.stringify(sampleData)}</code></span>
-        </p>
+        {sampleData ? <JsonTable data={sampleData} /> : <p>Loading data...</p>}
       </Modal.Body>
       <Modal.Footer>
             <Button variant="primary"  onClick={() => handleSampleModal()}>New sample</Button>
             <Button variant="secondary" onClick={props.onHide}>Close</Button>
       </Modal.Footer>
     </Modal>
-    </div>);
+    </div>
+  );
 }
 
+// Table component for displaying JSON data
+const JsonTable: React.FC<{ data: JsonData }> = ({ data }) => {
+  const columns = Object.keys(data);
+  const rows = columns.length > 0 ? Object.keys(data[columns[0]] || {}) : [];
+
+  return (
+    <Table striped bordered hover responsive>
+      <thead>
+        <tr>
+          <th>Row ID</th>
+          {columns.map((col) => (
+            <th key={col}>{col}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((rowId) => (
+          <tr key={rowId}>
+            <td>{rowId}</td>
+            {columns.map((col) => (
+              <td key={`${rowId}-${col}`}>
+                {data[col][rowId] || '-'}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  );
+};
 
 

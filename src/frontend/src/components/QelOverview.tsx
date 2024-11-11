@@ -9,11 +9,12 @@ import Col from 'react-bootstrap/Col';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import {SampleModal} from './SampleModal';
+import path from 'path';
 
 export const QelOverview: React.FC = () => {
-    const [qel, setQel] = useState<any>();
     const [overview, setOverview] = useState<any>();
-    const [modalShow, setModalShow] = React.useState(false);
+    const [currentModal, setCurrentModal] = useState<string | null>(null);
+    const [fileName, setFileName] = useState<string>();
     // get the overview data from the endpoint overview
     useEffect(() => {
         const fetchOverview = async () => {
@@ -32,7 +33,23 @@ export const QelOverview: React.FC = () => {
 
         fetchOverview();
     }, []);
-    console.log(overview);
+
+    useEffect(() => {
+        const fetchFileName = async () => {
+            try {
+                const response = await axios.get('http://127.0.0.1:8000/uploadfile/');
+                // Check if response data contains the expected structure
+                let path = response.data;
+                let filename = path.split('\\').pop();
+                setFileName(filename);
+            } catch (error) {
+                console.error("Error fetching File Name", error);
+            }
+        };
+
+        fetchFileName();
+    }, []);
+
     const eventNumber = overview ? overview['Events'] : 0;
     const activityNumber = overview ? overview['Activity'].length : 0;
     const objectNumber = overview ? overview['Objects'] : 0;
@@ -47,10 +64,6 @@ export const QelOverview: React.FC = () => {
     const QuantityRelations = overview ? overview['quantity relations'].length : 0;
 
 
-    const handleSampleObjects = async () => {
-        console.log("Fetching sample objects");
-           // axios.get('http://127.0.0.1:8000/overview/)
-    }
 
 
     return (
@@ -58,21 +71,25 @@ export const QelOverview: React.FC = () => {
             <div>
                 <h4>QEL Overview</h4>
             </div>
+            <div>
+                <h5>
+                    <span>File Name: <code>{fileName}</code></span>
+                </h5>
+            </div>
             <Container>
                 <Row >
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{eventNumber}</code> Events of <code>{activityNumber}</code> activities</span>
-                            {!!handleSampleObjects && (<Button size="sm" onClick={() => handleSampleObjects()} variant="light">Show sample</Button>)}
+                            {<Button size="sm" onClick={() => setCurrentModal('Events')} variant="light">Show sample</Button>}
                         </div>
                     </Col>
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{objectNumber}</code> Object of <code>{objectTypes}</code> Object Types</span>
-                            {<Button size="sm" onClick={() => setModalShow(true)} variant="light">Show sample</Button>}
-                            <SampleModal tableName = "Objects" show={modalShow} onHide={() => setModalShow(false)} />
+                            {<Button size="sm" onClick={() => setCurrentModal('Objects')} variant="light">Show sample</Button>}
                         </div>
                     </Col>
                 </Row>
@@ -82,14 +99,14 @@ export const QelOverview: React.FC = () => {
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{activeQuantityEvents}</code> Active Quantity Events of <code>{activeQuantityActivities}</code> active Quantity Activities</span>
-                            {!!handleSampleObjects && (<Button size="sm" onClick={() => handleSampleObjects()} variant="light">Show sample</Button>)}
+                            {<Button size="sm" onClick={() => setCurrentModal('Quantity Activities')} variant="light">Show sample</Button>}
                         </div>
                     </Col>
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{activeQuantityObjects}</code> active Quantity Objects of <code>{activeQuantityObjectTypes}</code> active Quantity Object Types</span>
-                            {!!handleSampleObjects && (<Button size="sm" onClick={() => handleSampleObjects()} variant="light">Show sample</Button>)}
+                            {<Button size="sm" onClick={() => setCurrentModal('Quantity Object Types')} variant="light">Show sample</Button>}
                         </div>
                     </Col>
                 </Row>
@@ -98,15 +115,16 @@ export const QelOverview: React.FC = () => {
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                         <FaCloud className="text-secondary" />
-                        <span><code>{itemTypes}</code>  itemTypes</span>
-                        {!!handleSampleObjects && (<Button size="sm" onClick={() => handleSampleObjects()} variant="light">Show sample</Button>)}
+                        <span><code>{itemTypes}</code>  Item Types</span>
+                        {<Button size="sm" onClick={() => setCurrentModal('Item Types')} variant="light">Show sample</Button>}
                         </div>
                     </Col>
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{itemCollections}</code> item Collections</span>
-                            {!!handleSampleObjects && (<Button size="sm" onClick={() => handleSampleObjects()} variant="light">Show sample</Button>)}
+                            {<Button size="sm" onClick={() => setCurrentModal('Collection')} variant="light">Show sample</Button>}
+
                         </div>
                     </Col> 
                 </Row>
@@ -116,18 +134,20 @@ export const QelOverview: React.FC = () => {
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{activeQuantityOprations}</code> active Quantity Oprations</span>
-                            {!!handleSampleObjects && (<Button size="sm" onClick={() => handleSampleObjects()} variant="light">Show sample</Button>)}
+                            {<Button size="sm" onClick={() => setCurrentModal('Active Quantity Relations')} variant="light">Show sample</Button>}
                         </div>
                     </Col>
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span> <code>{QuantityRelations}</code> Quantity Relations</span>
-                            {!!handleSampleObjects && (<Button size="sm" onClick={() => handleSampleObjects()} variant="light">Show sample</Button>)}
+                            {<Button size="sm" onClick={() => setCurrentModal('Quantity Relations')} variant="light">Show sample</Button>}
+
                         </div>
                     </Col>
                 </Row>
             </Container>
+            <SampleModal tableName={currentModal} show={currentModal !== null} onHide={() => setCurrentModal(null)} />
             
         </div>
     );

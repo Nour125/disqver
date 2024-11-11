@@ -10,9 +10,9 @@ import {QelOverview} from './QelOverview';
 export const UploadFile: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File>();
     const [qelOverview, setQelOverview] = useState<boolean>(false);
+    const [key, setKey] = useState(0);
 
     // handleUpload should save the uploaded file to the directory src\backend\files and then call the function qel-overview
-    
     const handleUpload = async () => {
         if (!selectedFile) {
           console.error("No file selected");
@@ -34,8 +34,12 @@ export const UploadFile: React.FC = () => {
       const handleShowQelOverview = async () => {
         setQelOverview(true);
       };
+      const handleUploadModal = async (): Promise<any | null>=> {
+        console.log("Fetching sample objects");
+        setKey((prevKey) => prevKey + 1); // Increment key to remount the component
+      }
     return (
-        <div>
+        <div key={key}>
             <h4>QEL Import</h4>
             <div className="mb-5">
             <Form.Group controlId="formFile" className="mb-3">
@@ -48,10 +52,12 @@ export const UploadFile: React.FC = () => {
             <Button onClick={()=>
             {
             handleUpload();
-            handleShowQelOverview();
+            handleShowQelOverview();    
+            handleUploadModal();
             }
             } disabled={!selectedFile}>Import</Button>
             </div>
+            
             <div>
               {qelOverview && <QelOverview/>}
             </div>

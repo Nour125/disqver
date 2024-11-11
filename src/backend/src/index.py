@@ -65,16 +65,7 @@ async def upload_file(file: UploadFile = File(...)):
 # Define a GET route for retrieving uploaded files
 @app.get("/uploadfile/")
 async def get_uploaded_file():
-    directory = r"src\backend\files"
-    if not os.path.exists(directory):
-        print(os.getcwd())
-        raise HTTPException(status_code=404, detail="Directory not found")
-
-    files = os.listdir(directory)
-    if not files:
-        raise HTTPException(status_code=404, detail="No files found")
-
-    return {files[-1]}
+    return get_last_uploaded_file()
 
 
 # Define a Pydantic model for the overview data
@@ -85,7 +76,7 @@ class Overview(BaseModel):
 # Define a GET route for the Overview data
 @app.get("/overview/")
 async def get_overview():
-    return overview
+    return send_overview_data()
 
 
 # Define a POST route for the Overview data

@@ -14,22 +14,9 @@ interface Item {
 }
 
 const App: React.FC = () => {
-  {/* 
-  const [items, setItems] = useState<Item[]>([]);
-  console.log("Fetching items");
+  {
 
-  useEffect(() => {
-    console.log("Fetching items");
-    axios.get('http://127.0.0.1:8000/items/')
-      .then(response => {
-        console.log("Items fetched", response.data);
-        setItems(response.data);
-      })
-      .catch(error => {
-        console.error("Error fetching items", error);
-      });
-  }, []);
-  */}
+  }
   return (
     <div>
       <Helmet>
@@ -53,8 +40,6 @@ const App: React.FC = () => {
         </ul>
         */}
         <UploadFile/>
-        
-
       </main>
     </div>
   );
