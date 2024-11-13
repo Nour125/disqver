@@ -15,6 +15,8 @@ export const QelOverview: React.FC = () => {
     const [overview, setOverview] = useState<any>();
     const [currentModal, setCurrentModal] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string>();
+    const [new_sample_button, setNewSampleButton] = useState<boolean>(false);
+
     // get the overview data from the endpoint overview
     useEffect(() => {
         const fetchOverview = async () => {
@@ -82,14 +84,20 @@ export const QelOverview: React.FC = () => {
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{eventNumber}</code> Events of <code>{activityNumber}</code> activities</span>
-                            {<Button size="sm" onClick={() => setCurrentModal('Events')} variant="light">Show sample</Button>}
+                            {<Button size="sm" onClick={() => {
+                                setCurrentModal('Events');
+                                setNewSampleButton(true);
+                                }} variant="light">Show sample</Button>}
                         </div>
                     </Col>
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{objectNumber}</code> Object of <code>{objectTypes}</code> Object Types</span>
-                            {<Button size="sm" onClick={() => setCurrentModal('Objects')} variant="light">Show sample</Button>}
+                            {<Button size="sm" onClick={() => {
+                                setCurrentModal('Objects');
+                                setNewSampleButton(true);
+                                }} variant="light">Show sample</Button>}
                         </div>
                     </Col>
                 </Row>
@@ -99,14 +107,14 @@ export const QelOverview: React.FC = () => {
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{activeQuantityEvents}</code> Active Quantity Events of <code>{activeQuantityActivities}</code> active Quantity Activities</span>
-                            {<Button size="sm" onClick={() => setCurrentModal('Quantity Activities')} variant="light">Show sample</Button>}
+                            {<Button size="sm" onClick={() => {setCurrentModal('Quantity Activities');setNewSampleButton(false)}} variant="light">Show the active Quantity Activities</Button>}
                         </div>
                     </Col>
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{activeQuantityObjects}</code> active Quantity Objects of <code>{activeQuantityObjectTypes}</code> active Quantity Object Types</span>
-                            {<Button size="sm" onClick={() => setCurrentModal('Quantity Object Types')} variant="light">Show sample</Button>}
+                            {<Button size="sm" onClick={() => setCurrentModal('Quantity Object Types')} variant="light">Show the active Quantity Object Types</Button>}
                         </div>
                     </Col>
                 </Row>
@@ -116,14 +124,14 @@ export const QelOverview: React.FC = () => {
                         <div className="d-flex align-items-center gap-3">
                         <FaCloud className="text-secondary" />
                         <span><code>{itemTypes}</code>  Item Types</span>
-                        {<Button size="sm" onClick={() => setCurrentModal('Item Types')} variant="light">Show sample</Button>}
+                        {<Button size="sm" onClick={() => setCurrentModal('Item Types')} variant="light">Show Item Types</Button>}
                         </div>
                     </Col>
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
-                            <span><code>{itemCollections}</code> item Collections</span>
-                            {<Button size="sm" onClick={() => setCurrentModal('Collection')} variant="light">Show sample</Button>}
+                            <span><code>{itemCollections}</code> Item Collections</span>
+                            {<Button size="sm" onClick={() => setCurrentModal('Collection')} variant="light">Show Item Collections</Button>}
 
                         </div>
                     </Col> 
@@ -134,20 +142,19 @@ export const QelOverview: React.FC = () => {
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span><code>{activeQuantityOprations}</code> active Quantity Oprations</span>
-                            {<Button size="sm" onClick={() => setCurrentModal('Active Quantity Relations')} variant="light">Show sample</Button>}
+                            {/*{<Button size="sm" onClick={() => setCurrentModal('Active Quantity Relations')} variant="light">Show sample</Button>} */}
                         </div>
                     </Col>
                     <Col>
                         <div className="d-flex align-items-center gap-3">
                             <FaCloud className="text-secondary" />
                             <span> <code>{QuantityRelations}</code> Quantity Relations</span>
-                            {<Button size="sm" onClick={() => setCurrentModal('Quantity Relations')} variant="light">Show sample</Button>}
-
+                            {/*{<Button size="sm" onClick={() => setCurrentModal('Quantity Relations')} variant="light">Show sample</Button>} */}
                         </div>
                     </Col>
                 </Row>
             </Container>
-            <SampleModal tableName={currentModal} show={currentModal !== null} onHide={() => setCurrentModal(null)} />
+            <SampleModal tableName={currentModal} new_sample={new_sample_button} show={currentModal !== null} onHide={() => setCurrentModal(null)} />
             
         </div>
     );

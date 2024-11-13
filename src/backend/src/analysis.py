@@ -2,7 +2,11 @@ import os
 import time
 import pandas as pd
 from qrpm.app.data_operations.log_overview import get_log_overview
-from qrpm.analysis.quantityState import determine_quantity_state_qel
+from qrpm.analysis.quantityState import (
+    determine_quantity_state_qel,
+    determine_quantity_state_cp,
+)
+from numpy import mean, absolute
 from qrpm.analysis.dataImport import load_qel_from_file
 import qrpm.app.dataStructure as ds
 import math
@@ -95,18 +99,57 @@ def get_table_data(table_name):
 
 
 #############################################################
-################ Determine Forecasting ######################
+############ Determine Forecasting for an item ##############
 #############################################################
-def determine_forecasting():
+def determin_demand_for_months(item_type: str) -> list[tuple[str, float]]:
     # create a QEL object from the last uploaded file
     qel = load_qel_from_file(file_path=get_last_uploaded_file())
+    qop = qel.get_quantity_operations()
 
-    # determine the quantity state
-    quantity_state = determine_quantity_state_qel(qel)
+    # Ensure the "Time" column is in datetime format
+    qop["Time"] = pd.to_datetime(qop["Time"])
+    mask = qop[item_type] < 0
+    qop = qop[mask]
+    qop = qop[[item_type, "Time"]]
+    qop["year_month"] = qop["Time"].dt.to_period("M")
 
-    # determine the forecasting
+    demand = []
+    for period, group in qop.groupby("year_month"):
+        monthly_demand = group[item_type].sum()
+        demand.append((str(period), -monthly_demand))
+    return demand
 
-    return quantity_state
+
+def determine_forecast(
+    alpha: float, item_type: str, period: int
+):  # period: int = 6 #number of months to calculate the old forecast
+
+    demandlist = determin_demand_for_months(item_type=item_type)
+    demandlist = demandlist[-period:]
+    old_forecast = (sum([demand for (_, demand) in demandlist])) / len(demandlist)
+    print(old_forecast)
+    last_period_demand = demandlist[-1][1]
+    print(last_period_demand)
+    new_forecast = old_forecast + (alpha * (last_period_demand - old_forecast))
+    print(round(new_forecast, 1))
+    return round(new_forecast, 1)
 
 
-print(determine_forecasting())
+def mean_absolute_deviation_for_demand(demand: list[tuple[str, float]]):
+    # calculate the mean absolute deviation for the demand
+    demand = [demand for (_, demand) in demand]
+    mean_demand = sum(demand) / len(demand)
+    mean_absolute_deviation = sum([abs(d - mean_demand) for d in demand]) / len(demand)
+    return round(mean_absolute_deviation, 1)
+
+
+def forecast_error(item_type: str):
+    demandlist = determin_demand_for_months(item_type=item_type)
+    MAD = mean_absolute_deviation_for_demand(demandlist)
+    return MAD
+
+
+print(forecast_error("PADS Tire"))
+
+
+print(determine_forecast(alpha=0.4, item_type="PADS Tire", period=3))

@@ -16,7 +16,7 @@ interface JsonData {
 
 
 
-export function SampleModal({ tableName, ...props }: any) {
+export function SampleModal({ tableName, new_sample, ...props }: any) {
   const [sampleData, setSampleData] = useState<JsonData | null>(null);
   const [key, setKey] = useState(0);  
 
@@ -64,7 +64,7 @@ export function SampleModal({ tableName, ...props }: any) {
         {sampleData ? <JsonTable data={sampleData} /> : <p>Loading data...</p>}
       </Modal.Body>
       <Modal.Footer>
-            <Button variant="primary"  onClick={() => handleSampleModal()}>New sample</Button>
+            {new_sample && <Button variant="primary"  onClick={() => handleSampleModal()}>New sample</Button>}
             <Button variant="secondary" onClick={props.onHide}>Close</Button>
       </Modal.Footer>
     </Modal>
