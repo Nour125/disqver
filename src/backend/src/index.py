@@ -90,3 +90,9 @@ async def create_overview(overview: Overview):
 @app.get("/uploadfile/{table_name}")
 async def get_table(table_name: str):
     return get_table_data(table_name)
+
+
+# Define a GET route for Sample data using the table name
+@app.get("/Demand/{item_name}")
+async def get_demand(item_name: str):
+    return determin_demand_for_months(item_name)

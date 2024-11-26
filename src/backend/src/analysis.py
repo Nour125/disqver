@@ -122,7 +122,9 @@ def determin_demand_for_months(item_type: str) -> list[tuple[str, float]]:
 
 def determine_forecast(
     alpha: float, item_type: str, period: int
-):  # period: int = 6 #number of months to calculate the old forecast
+):  # period: #number of months to calculate the old forecast
+    # item_type: the item type for which the forecast is to be determined
+    # alpha: the smoothing constant
 
     demandlist = determin_demand_for_months(item_type=item_type)
     demandlist = demandlist[-period:]
@@ -131,7 +133,6 @@ def determine_forecast(
     last_period_demand = demandlist[-1][1]
     print(last_period_demand)
     new_forecast = old_forecast + (alpha * (last_period_demand - old_forecast))
-    print(round(new_forecast, 1))
     return round(new_forecast, 1)
 
 
@@ -150,6 +151,4 @@ def forecast_error(item_type: str):
 
 
 print(forecast_error("PADS Tire"))
-
-
-print(determine_forecast(alpha=0.4, item_type="PADS Tire", period=3))
+print(determine_forecast(alpha=0.1, item_type="PADS Tire", period=3))
