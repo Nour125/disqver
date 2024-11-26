@@ -42,7 +42,7 @@ export const QelOverview: React.FC = () => {
     };
 
     fetchOverview();
-  }, []);
+  }, [fileName]);
 
   useEffect(() => {
     const fetchFileName = async () => {
