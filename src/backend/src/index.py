@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 from typing import List, Dict
 import os
+from analysis import *
 
 
 app = FastAPI()
@@ -24,8 +25,9 @@ class Item(BaseModel):
     description: str = None
 
 
-# In-memory storage for items
+# In-memory storage
 items = []
+overviewdata = {}
 
 
 # Define a simple route to test the API
@@ -50,11 +52,11 @@ def get_items():
 # Define a POST route for uploading a file
 @app.post("/uploadfile/")
 async def upload_file(file: UploadFile = File(...)):
-    file_location = f"..\\files\\{file.filename}"
+    file_location = r"src\backend\files"
     # Check if the 'src/backend/files' directory exists
-    if not os.path.exists("..\\files\\"):
+    if not os.path.exists(r"src\backend\files"):
         return {"error": "The target directory 'files' does not exist."}
-    with open(file_location, "wb") as f:
+    with open((file_location + "\\" + file.filename), "wb") as f:
         f.write(await file.read())
 
     return {"info": f"file '{file.filename}' saved at '{file_location}'"}
@@ -62,14 +64,35 @@ async def upload_file(file: UploadFile = File(...)):
 
 # Define a GET route for retrieving uploaded files
 @app.get("/uploadfile/")
-async def get_uploaded_files():
-    directory = "..\\files\\"
-    if not os.path.exists(directory):
-        print(os.getcwd())
-        raise HTTPException(status_code=404, detail="Directory not found")
+async def get_uploaded_file():
+    return get_last_uploaded_file()
 
-    files = os.listdir(directory)
-    if not files:
-        raise HTTPException(status_code=404, detail="No files found")
 
-    return {"files": files}
+# Define a Pydantic model for the overview data
+class Overview(BaseModel):
+    overviewdata: dict
+
+
+# Define a GET route for the Overview data
+@app.get("/overview/")
+async def get_overview():
+    return send_overview_data()
+
+
+# Define a POST route for the Overview data
+@app.post("/overview/")
+async def create_overview(overview: Overview):
+    overviewdata = overview.overviewdata
+    return overviewdata
+
+
+# Define a GET route for Sample data using the table name
+@app.get("/uploadfile/{table_name}")
+async def get_table(table_name: str):
+    return get_table_data(table_name)
+
+
+# Define a GET route for Sample data using the table name
+@app.get("/Demand/{item_name}")
+async def get_demand(item_name: str):
+    return determin_demand_for_months(item_name)
