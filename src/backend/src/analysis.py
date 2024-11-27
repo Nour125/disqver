@@ -101,15 +101,23 @@ def get_table_data(table_name):
 #############################################################
 ############ Determine Forecasting for an item ##############
 #############################################################
-def determin_demand_for_months(item_type: str) -> list[tuple[str, float]]:
+def determin_demand_for_months(
+    item_type: str, collection_point: str
+) -> list[tuple[str, float]]:
     # create a QEL object from the last uploaded file
     qel = load_qel_from_file(file_path=get_last_uploaded_file())
     qop = qel.get_quantity_operations()
 
     # Ensure the "Time" column is in datetime format
     qop["Time"] = pd.to_datetime(qop["Time"])
-    mask = qop[item_type] < 0
-    qop = qop[mask]
+    qop = qop.loc[qop[item_type] < 0]
+    if "Collection" in qop.columns:
+        if collection_point in qop["Collection"].values:
+            qop = qop.loc[qop["Collection"].isin([collection_point])]
+        else:
+            raise ValueError(f"Item {item_type} not found in the {collection_point}.")
+    else:
+        raise KeyError("Column 'Collection' not found in the DataFrame.")
     qop = qop[[item_type, "Time"]]
     qop["year_month"] = qop["Time"].dt.to_period("M")
 
@@ -150,5 +158,6 @@ def forecast_error(item_type: str):
     return MAD
 
 
-print(forecast_error("PADS Tire"))
-print(determine_forecast(alpha=0.1, item_type="PADS Tire", period=3))
+# print(forecast_error("PADS Tire"))
+# print(determine_forecast(alpha=0.1, item_type="PADS Tire", period=3))
+# print(determin_demand_for_months("Weizen", "Cp1"))

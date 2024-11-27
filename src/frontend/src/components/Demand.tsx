@@ -19,11 +19,13 @@ export const Demand: React.FC = () => {
 
   const itemOptions = itemTypes.map((itemType: string) => ({
     value: itemType,
-    label: itemType.charAt(0).toUpperCase() + itemType.slice(1), // Capitalize the first letter
+    label: itemType,
+    //label: itemType.charAt(0).toUpperCase() + itemType.slice(1), // Capitalize the first letter
   }));
   const CollectionsOptions = itemCollections.map((cp: string) => ({
     value: cp,
-    label: cp.charAt(0).toUpperCase() + cp.slice(1), // Capitalize the first letter
+    label: cp,
+    //label: cp.charAt(0).toUpperCase() + cp.slice(1), // Capitalize the first letter
   }));
 
   useEffect(() => {
@@ -40,28 +42,80 @@ export const Demand: React.FC = () => {
         console.error("Error fetching overview", error);
       }
     };
-    const handleDemandData = async () => {
+    /*
+    const fetchDemandData = async () => {
       try {
-        let data: { [key: string]: any } = {};
-        for (const item of selectedOptionsItem) {
-          const response = await axios.get(
-            "http://127.0.0.1:8000/Demand/" + item.label
-          );
-          // Check if response data contains the expected structure
-          if (response.data) {
-            data[item.label] = response.data;
-          } else {
-            console.log("Invalid response structure");
+        let DemandData: { [cp: string]: { [key: string]: any } } = {};
+        for (const cp of selectedOptionsCollection) {
+          if (!DemandData[cp.label]) {
+            DemandData[cp.label] = {};
+          }
+          for (const item of selectedOptionsItem) {
+            const response = await axios.get(
+              "http://127.0.0.1:8000/Demand/" + item.label + "/" + cp.label
+            );
+            // Check if response data contains the expected structure
+            if (response.data) {
+              DemandData[cp.label][item.label] = response.data;
+            } else {
+              console.log("Invalid response structure");
+            }
           }
         }
-        setDemandData(data);
+        setDemandData(DemandData);
       } catch (error) {
         console.error("Error fetching Demand Data", error);
       }
     };
+    */
+    const fetchDemandData = async () => {
+      try {
+        let DemandData: { [cp: string]: { [key: string]: any } } = {};
+
+        for (const cp of selectedOptionsCollection) {
+          if (!DemandData[cp.label]) {
+            DemandData[cp.label] = {};
+          }
+
+          for (const item of selectedOptionsItem) {
+            try {
+              const response = await axios.get(
+                `http://127.0.0.1:8000/Demand/${item.label}/${cp.label}`
+              );
+
+              // Check if response data contains the expected structure
+              if (response.data) {
+                DemandData[cp.label][item.label] = response.data;
+              } else {
+                console.log("Invalid response structure");
+              }
+            } catch (error: any) {
+              // Handle specific backend errors
+              if (error.response && error.response.status === 400) {
+                // Display or log the specific error message from the backend
+                console.error(
+                  `Error for ${item.label} at ${cp.label}:`,
+                  error.response.data.detail
+                );
+                alert(
+                  `Error fetching data for ${item.label} at ${cp.label}: ${error.response.data.detail}`
+                );
+              } else {
+                // Handle generic errors
+                console.error("Unexpected error:", error);
+              }
+            }
+          }
+        }
+
+        setDemandData(DemandData);
+      } catch (error) {
+        console.error("Error fetching Demand Data:", error);
+      }
+    };
 
     fetchOverview();
-    handleDemandData();
+    fetchDemandData();
   }, [selectedOptionsItem, selectedOptionsCollection]);
 
   function AnimatedMultiItem() {
@@ -69,7 +123,7 @@ export const Demand: React.FC = () => {
       <Select
         closeMenuOnSelect={false}
         components={animatedComponents}
-        defaultValue={itemOptions[0] ? [itemOptions[0]] : []}
+        //defaultValue={itemOptions[0] ? [itemOptions[0]] : []}
         isMulti
         options={itemOptions}
         onChange={setSelectedOptionsItem}
@@ -83,7 +137,7 @@ export const Demand: React.FC = () => {
     return (
       <Select
         closeMenuOnSelect={false}
-        defaultValue={CollectionsOptions[0] ? [CollectionsOptions[0]] : []}
+        //defaultValue={CollectionsOptions[0] ? [CollectionsOptions[0]] : []}
         components={animatedComponents}
         isMulti
         options={CollectionsOptions}
@@ -110,60 +164,70 @@ export const Demand: React.FC = () => {
   };
 
   function BarsDataset() {
-    // Restructure the data to ensure each date has all the item values
-    const formattedData = Object.keys(demandData || {}).map((itemName) => {
-      // For each itemName, map through the data and add an object that includes
-      // the date and the value for that item.
-      return demandData[itemName].map(([date, value]: [string, number]) => ({
-        date,
-        [itemName]: value, // Assign the value to the itemName key
-      }));
-    });
+    // Generate a bar chart for each `cp` in the `demandData`
+    const charts = Object.keys(demandData || {}).map((cpName) => {
+      // Extract the data for the current `cp`
+      const cpData = demandData[cpName];
 
-    // Flatten the formattedData to combine all item data into a single array
-    const combinedData = formattedData.reduce((acc, curr) => {
-      // Merge each array of data (for each item) into a single array of objects
-      curr.forEach((entry: { date: any }) => {
+      // Restructure the data to ensure each date has all the item values
+      const formattedData = Object.keys(cpData || {}).flatMap((itemName) => {
+        return cpData[itemName].map(([date, value]: [string, number]) => ({
+          date,
+          [itemName]: value, // Assign the value to the itemName key
+        }));
+      });
+
+      // Flatten the formattedData to combine all item data into a single array
+      const combinedData = formattedData.reduce((acc, curr) => {
         const existingEntry = acc.find(
-          (e: { date: any }) => e.date === entry.date
+          (e: { date: string }) => e.date === curr.date
         );
         if (existingEntry) {
-          // If an entry for the same date exists, merge the new item data
-          Object.assign(existingEntry, entry);
+          // Merge the new item data into the existing entry
+          Object.assign(existingEntry, curr);
         } else {
-          // If no entry exists for this date, add a new one
-          acc.push(entry);
+          // Add a new entry if no existing entry for this date
+          acc.push(curr);
         }
-      });
-      return acc;
-    }, []);
+        return acc;
+      }, []);
 
-    // Create the series data dynamically from the demandData
-    const seriesData = Object.keys(demandData || {}).map((itemName) => ({
-      dataKey: itemName, // Use the item name as the dataKey for each series
-      label: itemName, // Use the item name as the label for each series
-    }));
+      // Create the series data dynamically from the `cpData`
+      const seriesData = Object.keys(cpData || {}).map((itemName) => ({
+        dataKey: itemName, // Use the item name as the dataKey for each series
+        label: itemName, // Use the item name as the label for each series
+      }));
 
-    return (
-      <BarChart
-        dataset={combinedData} // Use the combined data for all series
-        xAxis={[{ scaleType: "band", dataKey: "date", label: "Date" }]} // "Date" for x-axis
-        series={seriesData} // Dynamically generated series
-        {...chartSetting} // Assuming chartSetting includes your chart configurations
-      />
-    );
+      // Return a BarChart component for this `cp`
+      return (
+        <div key={cpName}>
+          <h3>{cpName}</h3> {/* Title for the chart */}
+          <BarChart
+            dataset={combinedData} // Use the combined data for all series
+            xAxis={[{ scaleType: "band", dataKey: "date", label: "Date" }]} // "Date" for x-axis
+            series={seriesData} // Dynamically generated series
+            {...chartSetting} // Assuming chartSetting includes your chart configurations
+          />
+        </div>
+      );
+    });
+
+    return <div>{charts}</div>; // Render all charts
   }
 
   return (
     <div>
       <div className="mb-5">
-        <div>
+        <div className="mb-3">
           <h4>Demand Analysis</h4>
         </div>
         <Container>
           <div className="mb-3">
             {overview && (
               <>
+                <h6>
+                  Select an item and collection to view the demand analysis.
+                </h6>
                 <Stack gap={3}>
                   <AnimatedMultiItem />
                   <AnimatedMultiCollections />
