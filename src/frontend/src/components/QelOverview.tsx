@@ -154,6 +154,7 @@ export const QelOverview: React.FC = () => {
                     size="sm"
                     onClick={() => {
                       setCurrentModal("Quantity Activities");
+                      setNewSampleButton(false);
                     }}
                     variant="light"
                   >
@@ -174,7 +175,10 @@ export const QelOverview: React.FC = () => {
                 {
                   <Button
                     size="sm"
-                    onClick={() => setCurrentModal("Quantity Object Types")}
+                    onClick={() => {
+                      setCurrentModal("Quantity Object Types");
+                      setNewSampleButton(false);
+                    }}
                     variant="light"
                   >
                     Show the active Quantity Object Types
@@ -193,7 +197,10 @@ export const QelOverview: React.FC = () => {
                 {
                   <Button
                     size="sm"
-                    onClick={() => setCurrentModal("Item Types")}
+                    onClick={() => {
+                      setCurrentModal("Item Types");
+                      setNewSampleButton(false);
+                    }}
                     variant="light"
                   >
                     Show Item Types
@@ -210,7 +217,10 @@ export const QelOverview: React.FC = () => {
                 {
                   <Button
                     size="sm"
-                    onClick={() => setCurrentModal("Collection")}
+                    onClick={() => {
+                      setCurrentModal("Collection");
+                      setNewSampleButton(false);
+                    }}
                     variant="light"
                   >
                     Show Item Collections
