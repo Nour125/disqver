@@ -10,6 +10,7 @@ from numpy import mean, absolute
 from qrpm.analysis.dataImport import load_qel_from_file
 import qrpm.app.dataStructure as ds
 import math
+from qel_simulation import QuantityEventLog
 
 
 def sorted_directory_listing_by_creation_time_with_os_listdir(directory):
@@ -99,7 +100,7 @@ def get_table_data(table_name):
 
 
 #############################################################
-############ Determine Forecasting for an item ##############
+############ Determin Forecasting for an item ##############
 #############################################################
 def determin_demand_for_months(
     item_type: str, collection_point: str
@@ -160,4 +161,50 @@ def forecast_error(item_type: str):
 
 # print(forecast_error("PADS Tire"))
 # print(determine_forecast(alpha=0.1, item_type="PADS Tire", period=3))
-# print(determin_demand_for_months("Weizen", "Cp1"))
+print(determin_demand_for_months("Tube", "Company Warehouse"))
+
+
+#############################################################
+############ Determin Lead Time for an RO ##################
+#############################################################
+
+
+def get_Placed_RO(qel: QuantityEventLog, Planning_System_cp: str) -> pd.DataFrame:
+    qop = qel.get_quantity_operations()
+    if Planning_System_cp in qop["Collection"].values:
+        qop = qop.loc[qop["Collection"].isin([Planning_System_cp])]
+    else:
+        raise ValueError(f"{Planning_System_cp} not found in the Collection Points.")
+    print(qop)
+    items_in_Planning_System = [
+        item for item in qel.item_types_collection[Planning_System_cp]
+    ]
+    filtered_qop = qop.loc[qop[items_in_Planning_System].gt(0).any(axis=1)]
+    # sortiere zu erst nach zeit
+    filtered_qop["RO_id"] = range(1, len(filtered_qop) + 1)
+    # filtered_qop.to_csv("src\\backend\\files\\placed_RO.csv", index=False)
+
+    return filtered_qop
+
+
+def get_delivered_RO(qel: QuantityEventLog, Physical_cp: str) -> pd.DataFrame:
+    qop = qel.get_quantity_operations()
+    if Physical_cp in qop["Collection"].values:
+        qop = qop.loc[qop["Collection"].isin([Physical_cp])]
+    else:
+        raise ValueError(f"{Physical_cp} not found in the Collection Points.")
+    items_in_Physical_cp = [item for item in qel.item_types_collection[Physical_cp]]
+    filtered_qop = qop.loc[qop[items_in_Physical_cp].gt(0).any(axis=1)]
+
+    # Ensure 'Time' column is in datetime format
+    filtered_qop["Time"] = pd.to_datetime(filtered_qop["Time"])
+    # Extract only the date part (year, month, day)
+    filtered_qop["Time"] = filtered_qop["Time"].dt.date
+    # Group by the 'Time' column (now containing only the date) and sum up the quantities for each item
+    filtered_qop = filtered_qop.groupby("Time", as_index=False).sum()
+
+    # sortiere zu erst nach zeit
+
+    filtered_qop.to_csv("src\\backend\\files\\delivered_RO.csv", index=False)
+
+    return filtered_qop
