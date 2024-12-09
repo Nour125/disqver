@@ -66,6 +66,9 @@ def send_overview_data():
     return overview
 
 
+send_overview_data()
+
+
 # get the sample data from the table
 def get_table_data(table_name):
     # create a QEL object from the last uploaded file
@@ -161,7 +164,7 @@ def forecast_error(item_type: str):
 
 # print(forecast_error("PADS Tire"))
 # print(determine_forecast(alpha=0.1, item_type="PADS Tire", period=3))
-print(determin_demand_for_months("Tube", "Company Warehouse"))
+# print(determin_demand_for_months("Tube", "Company Warehouse"))
 
 
 #############################################################
