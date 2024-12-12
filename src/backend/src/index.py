@@ -93,6 +93,11 @@ async def get_table(table_name: str):
 
 
 # Define a GET route for Sample data using the table name
-@app.get("/Demand/{item_name}")
-async def get_demand(item_name: str):
-    return determin_demand_for_months(item_name)
+@app.get("/Demand/{item_name}/{collection_point}")
+async def get_demand(item_name: str, collection_point: str):
+    try:
+        demand = determin_demand_for_months(item_name, collection_point)
+        return demand
+    except ValueError as e:
+        # Return a 400 error with the error message
+        raise HTTPException(status_code=400, detail=str(e))

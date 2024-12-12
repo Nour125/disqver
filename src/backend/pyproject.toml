@@ -17,6 +17,7 @@ dash = "2.17.0"
 pm4py = "^2.7.5.2"
 dash-svg = "^0.0.12"
 fastapi = {extras = ["all"], version = "^0.115.2"}
+ipykernel = "^6.2.0"
 
 
 
