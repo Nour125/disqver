@@ -92,6 +92,12 @@ async def get_table(table_name: str):
     return get_table_data(table_name)
 
 
+# Define a GET route for item types using the cp name
+@app.get("/itemtypes/{collection_point}")
+async def get_item_types_from_cp(collection_point: str):
+    return get_item_types_by_cp(collection_point)
+
+
 # Define a GET route for Sample data using the table name
 @app.get("/Demand/{item_name}/{collection_point}")
 async def get_demand(item_name: str, collection_point: str):
@@ -101,3 +107,10 @@ async def get_demand(item_name: str, collection_point: str):
     except ValueError as e:
         # Return a 400 error with the error message
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# Define a GET route for qnet
+@app.get("/qnet/")
+async def get_qnet():
+    qnet, graphdata = get_qnet_data()
+    return graphdata

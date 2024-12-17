@@ -18,31 +18,29 @@ import Form from "react-bootstrap/Form";
 import { SampleModal } from "./SampleModal";
 import path from "path";
 import { Demand } from "./Demand";
+import { QuantityGraph } from "./InteractiveGraph";
+
+export async function getOverview() {
+  try {
+    const response = await axios.get("http://127.0.0.1:8000/overview/");
+    // Check if response data contains the expected structure
+    if (response.data) {
+      return response.data;
+    } else {
+      console.log("Invalid response structure");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching overview", error);
+    return null;
+  }
+}
 
 export const QelOverview: React.FC = () => {
   const [overview, setOverview] = useState<any>();
   const [currentModal, setCurrentModal] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>();
   const [new_sample_button, setNewSampleButton] = useState<boolean>(false);
-
-  // get the overview data from the endpoint overview
-  useEffect(() => {
-    const fetchOverview = async () => {
-      try {
-        const response = await axios.get("http://127.0.0.1:8000/overview/");
-        // Check if response data contains the expected structure
-        if (response.data && response.data.Events) {
-          setOverview(response.data);
-        } else {
-          console.log("Invalid response structure");
-        }
-      } catch (error) {
-        console.error("Error fetching overview", error);
-      }
-    };
-
-    fetchOverview();
-  }, [fileName]);
 
   useEffect(() => {
     const fetchFileName = async () => {
@@ -59,6 +57,16 @@ export const QelOverview: React.FC = () => {
 
     fetchFileName();
   }, []);
+
+  // get the overview data from the endpoint overview
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await getOverview(); // Wait for the data to be fetched
+      setOverview(data); // Set the overview state after the data is fetched
+    };
+
+    fetchData();
+  }, [fileName]);
 
   const eventNumber = overview ? overview["Events"] : 0;
   const activityNumber = overview ? overview["Activity"].length : 0;
@@ -260,7 +268,7 @@ export const QelOverview: React.FC = () => {
         />
       </div>
       <div>
-        <Demand />
+        <QuantityGraph />
       </div>
     </div>
   );

@@ -2,15 +2,15 @@ import os
 import time
 import pandas as pd
 from qrpm.app.data_operations.log_overview import get_log_overview
-from qrpm.analysis.quantityState import (
-    determine_quantity_state_qel,
-    determine_quantity_state_cp,
-)
-from numpy import mean, absolute
 from qrpm.analysis.dataImport import load_qel_from_file
-import qrpm.app.dataStructure as ds
 import math
-from qel_simulation import QuantityEventLog
+from qel_simulation import QuantityEventLog, QuantityGraph
+from qrpm.app.qnet_component import discover_qnet, get_dot_string
+import qrpm.app.dataStructure as ds
+from qrpm.GLOBAL import *
+import qrpm.analysis.objectQuantities as oqtyy
+import json
+from qrpm.analysis import quantityState as qstate
 
 
 def sorted_directory_listing_by_creation_time_with_os_listdir(directory):
@@ -33,7 +33,6 @@ def get_last_uploaded_file():
         )
         if len(files) == 0:
             raise FileNotFoundError("No files found in the directory.")
-        print(files)
         files = ["src\\backend\\files\\" + file for file in files]
 
         return files[0]
@@ -64,9 +63,6 @@ def send_overview_data():
     # fill nan with ""
     overview = replace_nan_with_empty_string(overview)
     return overview
-
-
-send_overview_data()
 
 
 # get the sample data from the table
@@ -100,6 +96,11 @@ def get_table_data(table_name):
         return dict.fromkeys(overview["Quantity Object Types"], "")
     else:
         return {"error": "Table name not found."}
+
+
+def get_item_types_by_cp(cp: str):
+    qel = load_qel_from_file(file_path=get_last_uploaded_file())
+    return qel.item_types_collection[cp]
 
 
 #############################################################
@@ -211,3 +212,66 @@ def get_delivered_RO(qel: QuantityEventLog, Physical_cp: str) -> pd.DataFrame:
     filtered_qop.to_csv("src\\backend\\files\\delivered_RO.csv", index=False)
 
     return filtered_qop
+
+
+# discover qnet
+
+
+def to_graph_data(qnet):
+    nodes = [{"id": place.name, "type": "place"} for place in qnet.places] + [
+        {"id": transition.name, "type": "transition"} for transition in qnet.transitions
+    ]
+    edges = [
+        {"source": arc.source.name, "target": arc.target.name} for arc in qnet.arcs
+    ]
+    return {"nodes": nodes, "edges": edges}
+
+
+def get_qnet_data():
+    qel = load_qel_from_file(file_path=get_last_uploaded_file())
+    overview = get_log_overview(qel)
+    # data frames
+    e2o = qel.get_e2o_relationships()
+    qop = qel.get_quantity_operations()
+    events = qel.get_events()
+    objects = qel.get_objects()
+    initial_item_levels = overview[TERM_INITIAL_ILVL]
+
+    overview[TERM_E2O] = ds.serialise_dataframe(e2o)
+    overview[TERM_QUANTITY_OPERATIONS] = ds.serialise_dataframe(qop)
+    overview[TERM_EVENT_DATA] = ds.serialise_dataframe(events)
+    overview[TERM_OBJECT_DATA] = ds.serialise_dataframe(objects)
+
+    if len(qop) > 0:
+        qty_state = True
+        ilvl = qstate.determine_quantity_state_qop(qop, initial_item_levels)
+        oqty = oqtyy.determine_object_quantity(qop=qop, e2o=e2o, object_types=TERM_ALL)
+        overview[TERM_ITEM_LEVELS] = ds.serialise_dataframe(ilvl)
+        overview[TERM_OBJECT_QTY] = ds.serialise_dataframe(oqty)
+    else:
+        qty_state = False
+
+    state_store = ds.create_initial_state_store(qty_state=qty_state, demo_state=False)
+
+    path = r"src\backend\jsonfiles\overview_data.json"
+    with open(path, "w") as file:
+        json.dump(overview, file)
+
+    overview_json = ds.transform_dict_to_json(overview)
+    events, objects, e2o, qop, ilvl, oqty = ds.get_raw_data_dataframes(overview_json)
+    qnet, qnetdata = discover_qnet(
+        events=events,
+        objects=objects,
+        qop=qop,
+        e2o=e2o,
+    )
+    t = get_dot_string(qnet)
+    print(t)
+    qnet_graph_object = QuantityGraph(qnet)
+    qnet_graph_object.create_graph()
+
+    graph_data = to_graph_data(qnet)
+    return qnet, t
+
+
+get_qnet_data()
