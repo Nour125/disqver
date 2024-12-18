@@ -54,7 +54,7 @@ identifyincomingDelivery_ids = cur_original.fetchall()
 cur_original.execute("SELECT ocel_id FROM event_UnloadDelivery;")
 UnloadDelivery_ids = cur_original.fetchall()
 
-cur_original.execute("SELECT ocel_id FROM object_Delivery;")
+cur_original.execute("SELECT ocel_id,supplier FROM object_Delivery;")
 Delivery_ids = cur_original.fetchall()
 
 cur_original.execute("SELECT ocel_id FROM object_Palette;")
@@ -66,31 +66,62 @@ ReplenishmentOrder_ids = cur_original.fetchall()
 cur_original.execute("SELECT ocel_id FROM event_PlacedeliveredItemsintoInventory;")
 PlacedeliveredItemsintoInventory_ids = cur_original.fetchall()
 
+"""
+table_name = "object_quantity"
+unwanted_column = "ocel_id"
+
+# Fetch all column names from the table
+cur_original.execute(f"PRAGMA table_info({table_name});")
+columns = [row[1] for row in cur_original.fetchall()]  # row[1] contains column names
+
+# Exclude the unwanted column
+columns_to_select = [col for col in columns if col != unwanted_column]
+columns_str = ", ".join(columns_to_select)
+
+# List to store results
+Delivery_quantities = []
+
+# Dynamically build the SELECT query excluding the unwanted column
+query = f"SELECT {columns_str} FROM {table_name} WHERE ocel_id = ?;"
+
+# Iterate through Delivery_ids and fetch data
+for delivery_id in Delivery_ids:
+    cur_original.execute(query, (delivery_id[0],))
+    Delivery_quantities.extend(cur_original.fetchall())
+"""
+
+# get from event_object table all rows with ocel_object_id in Delivery_ids and ocel_event_id in identifyincomingDelivery_ids
+cur_original.execute(
+    "SELECT * FROM event_object WHERE ocel_object_id IN (SELECT ocel_id FROM object_Delivery) AND ocel_event_id IN (SELECT ocel_id FROM event_IdentifyincomingDelivery);"
+)
+event_object_identifyincomingDelivery = cur_original.fetchall()
+# add
+
 # drop the tables
-cur_original.execute("DROP TABLE IF EXISTS event_IdentifyincomingDelivery;")
+# cur_original.execute("DROP TABLE IF EXISTS event_IdentifyincomingDelivery;")
 cur_original.execute("DROP TABLE IF EXISTS event_UnloadDelivery;")
 cur_original.execute("DROP TABLE IF EXISTS object_Delivery;")
 cur_original.execute("DROP TABLE IF EXISTS object_Palette;")
 
 # delete all rows
-
+"""
 for identifyincomingDelivery_id in identifyincomingDelivery_ids:
     cur_original.execute(
         "DELETE FROM event WHERE ocel_id = ?;", (identifyincomingDelivery_id[0],)
     )
 
-
+"""
 for UnloadDelivery_id in UnloadDelivery_ids:
     cur_original.execute(
         "DELETE FROM event WHERE ocel_id = ?;", (UnloadDelivery_id[0],)
     )
 
 
-for identifyincomingDelivery_id in identifyincomingDelivery_ids:
+"""for identifyincomingDelivery_id in identifyincomingDelivery_ids:
     cur_original.execute(
         "DELETE FROM event_object WHERE ocel_event_id = ?;",
         (identifyincomingDelivery_id[0],),
-    )
+    )"""
 
 
 for UnloadDelivery_id in UnloadDelivery_ids:
@@ -116,9 +147,9 @@ for Palette_id in Palette_ids:
     )
 
 
-cur_original.execute(
+"""cur_original.execute(
     "DELETE FROM event_map_type WHERE ocel_type_map = 'IdentifyincomingDelivery';"
-)
+)"""
 cur_original.execute(
     "DELETE FROM event_map_type WHERE ocel_type_map = 'UnloadDelivery';"
 )
@@ -126,33 +157,136 @@ cur_original.execute("DELETE FROM object_map_type WHERE ocel_type_map = 'Deliver
 cur_original.execute("DELETE FROM object_map_type WHERE ocel_type_map = 'Palette';")
 
 
+for PlacedeliveredItemsintoInventory_id in PlacedeliveredItemsintoInventory_ids:
+    cur_original.execute(
+        "DELETE FROM quantity_operations WHERE ocel_id = ?;",
+        (PlacedeliveredItemsintoInventory_id[0],),
+    )
+"""
+for PlacedeliveredItemsintoInventory_id in PlacedeliveredItemsintoInventory_ids:
+    cur_original.execute(
+        "DELETE FROM event_object WHERE ocel_event_id = ?;",
+        (PlacedeliveredItemsintoInventory_id[0],),
+    )
+"""
+
+# Step 3: Fetch object_quantity
+cur_original.execute("SELECT * FROM object_quantity;")
+object_quantity_rows = cur_original.fetchall()
+
+# Step 4: Columns from object_quantity and quantity_operations
+object_quantity_columns = [
+    "Tube",
+    "Front Light",
+    "Back Light",
+    "Saddle",
+    "PADS Tube",
+    "Brake Shoes (4)",
+    "Bell",
+    "PADS Brake Shoes (2)",
+    "Helmet",
+    "Pedal",
+    "Speedometer",
+    "Brake Cable (2)",
+    "Handles (2)",
+    "PADS Tire",
+    "Box",
+    "Tire",
+    "PADS Brake Cable (2)",
+]
+
+quantity_operations_columns = [
+    "PADS Brake Shoes (2)",
+    "PADS Brake Cable (2)",
+    "PADS Tire",
+    "PADS Tube",
+    "Brake Shoes (4)",
+    "Tube",
+    "Bell",
+    "Brake Cable (2)",
+    "Helmet",
+    "Speedometer",
+    "Pedal",
+    "Front Light",
+    "Back Light",
+    "Saddle",
+    "Tire",
+    "Handles (2)",
+    "Box",
+]
+
+# Mapping: Match object_quantity columns to quantity_operations columns
+column_mapping = {
+    col: col for col in object_quantity_columns if col in quantity_operations_columns
+}
+
+# Step 5: Build helper dictionaries
+delivery_dict = {row[0]: row[1] for row in Delivery_ids}  # Maps ocel_id -> supplier
+object_quantity_dict = {
+    row[0]: row[1:] for row in object_quantity_rows
+}  # Maps ocel_id -> quantity values
+
+# Step 6: Process data to create rows for `quantity_operations`
+result = []
+for event_row in event_object_identifyincomingDelivery:
+    event_id = event_row[0]
+    object_id = event_row[1]
+
+    # Get supplier for the object_id
+    supplier = delivery_dict.get(object_id, "Unknown")
+
+    # Get the quantity data for the object_id
+    quantity_data = object_quantity_dict.get(
+        object_id, [None] * len(object_quantity_columns)
+    )
+
+    # Build the quantities in correct column order for `quantity_operations`
+    mapped_quantities = [None] * len(quantity_operations_columns)
+    for obj_col, qty in zip(object_quantity_columns, quantity_data):
+        if obj_col in column_mapping:
+            mapped_index = quantity_operations_columns.index(column_mapping[obj_col])
+            mapped_quantities[mapped_index] = qty
+
+    # Determine inventory location
+    if supplier == "PADS":
+        inventory_location = "PADS Inventory (VMI)"
+    else:
+        inventory_location = "Company Warehouse"
+
+    # Append the final row (event_id, inventory_location, mapped_quantities...)
+    result.append((event_id, inventory_location, *mapped_quantities))
+
+# Print or use `result` for SQLite insertion
+print(result)
+
+# Step 7: Insert the rows into `quantity_operations`
+placeholders = ", ".join(["?"] * (2 + len(quantity_operations_columns)))
+insert_query = f"""
+    INSERT INTO quantity_operations (ocel_id, ocel_cpid, {', '.join([f'"{col}"' for col in quantity_operations_columns])})
+    VALUES ({placeholders});
+"""
+cur_original.executemany(insert_query, result)
+conn_original.commit()
+conn_original.close()
+
+"""for PlacedeliveredItemsintoInventory_id in PlacedeliveredItemsintoInventory_ids:
+    cur_original.execute(
+        "DELETE FROM event WHERE ocel_id = ?;",
+        (PlacedeliveredItemsintoInventory_id[0],),
+    )
+
 PlacedeliveredItemsintoInventory_ids_set = {
     id[0] for id in PlacedeliveredItemsintoInventory_ids
 }
 
 for PlacedeliveredItemsintoInventory_id in PlacedeliveredItemsintoInventory_ids:
     cur_original.execute(
-        "DELETE FROM quantity_operations WHERE ocel_id = ?;",
-        (PlacedeliveredItemsintoInventory_id[0],),
-    )
-for PlacedeliveredItemsintoInventory_id in PlacedeliveredItemsintoInventory_ids:
-    cur_original.execute(
-        "DELETE FROM event WHERE ocel_id = ?;",
-        (PlacedeliveredItemsintoInventory_id[0],),
-    )
-
-for PlacedeliveredItemsintoInventory_id in PlacedeliveredItemsintoInventory_ids:
-    cur_original.execute(
         "DELETE FROM event_PlacedeliveredItemsintoInventory WHERE ocel_id = ?;",
         (PlacedeliveredItemsintoInventory_id[0],),
-    )
-for PlacedeliveredItemsintoInventory_id in PlacedeliveredItemsintoInventory_ids:
-    cur_original.execute(
-        "DELETE FROM event_object WHERE ocel_event_id = ?;",
-        (PlacedeliveredItemsintoInventory_id[0],),
-    )
+    )"""
 
-qop["Time"] = pd.to_datetime(qop["Time"])  # Ensure Time column is datetime
+
+"""qop["Time"] = pd.to_datetime(qop["Time"])  # Ensure Time column is datetime
 
 # Filter rows where ocel_ide is in PROII_ids and ocel_cpid is "cp1"
 filtered_qop = qop[
@@ -182,7 +316,7 @@ result2 = result2.drop(columns=["Time"])
 # Result rows for SQLite insertion
 result1["Time"] = result1["Time"].astype(str)
 rows_to_insert1 = result1.to_records(index=False).tolist()
-rows_to_insert2 = result2.to_records(index=False).tolist()
+rows_to_insert2 = result2.to_records(index=False).tolist()"""
 
 
 '''
@@ -214,7 +348,7 @@ cur_original.execute(
 """
 )
 '''
-cur_original.executemany(
+"""cur_original.executemany(
     "INSERT INTO event_PlacedeliveredItemsintoInventory (ocel_id, ocel_time) VALUES (?, ?);",
     rows_to_insert1,
 )
@@ -269,7 +403,7 @@ cur_original.executemany(insert_sql, rows_to_insert2)
 
 
 conn_original.commit()
-conn_original.close()
+conn_original.close()"""
 
 """# Pad ReplenishmentOrder_ids with NULL to match the length of Palette_ids
 if len(Palette_ids) > len(ReplenishmentOrder_ids):

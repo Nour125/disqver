@@ -92,9 +92,8 @@ export const QuantityGraph: React.FC = () => {
   const handleNodeClick = async (nodeId: string) => {
     const itemCollections = (await overview) ? overview["Collection"] : [];
 
-    if (itemCollections.includes(nodeId)) {
+    if (await itemCollections.includes(nodeId)) {
       console.log("Demand for CollectionPoint:", nodeId);
-      setSelectedNodeId(nodeId);
 
       // Fetch item types associated with the collection point
       try {
@@ -118,13 +117,14 @@ export const QuantityGraph: React.FC = () => {
   };
 
   // Add interactivity to graph nodes
-  const addInteractivity = () => {
+  const addInteractivity = async () => {
     const svg = d3.select("#graph").select("svg");
 
     // Attach click listeners to nodes
-    svg.selectAll("g.node").on("click", function () {
+    svg.selectAll("g.node").on("click", async function () {
       const nodeId = d3.select(this).select("title").text();
-      handleNodeClick(nodeId);
+      setSelectedNodeId(nodeId);
+      await handleNodeClick(nodeId);
     });
 
     // Optional: Handle edges or clusters
