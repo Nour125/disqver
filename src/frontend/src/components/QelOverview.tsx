@@ -19,6 +19,7 @@ import { SampleModal } from "./SampleModal";
 import path from "path";
 import { Demand } from "./Demand";
 import { QuantityGraph } from "./InteractiveGraph";
+import { UserInput } from "./UserInput";
 
 export async function getOverview() {
   try {
@@ -37,7 +38,7 @@ export async function getOverview() {
 }
 
 export const QelOverview: React.FC = () => {
-  const [overview, setOverview] = useState<any>();
+  const [overview, setOverview] = useState<any>(); // define type of overview
   const [currentModal, setCurrentModal] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>();
   const [new_sample_button, setNewSampleButton] = useState<boolean>(false);
@@ -267,9 +268,7 @@ export const QelOverview: React.FC = () => {
           onHide={() => setCurrentModal(null)}
         />
       </div>
-      <div>
-        <QuantityGraph />
-      </div>
+      <UserInput overview={overview} />
     </div>
   );
 };

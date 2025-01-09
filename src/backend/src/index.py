@@ -28,6 +28,7 @@ class Item(BaseModel):
 # In-memory storage
 items = []
 overviewdata = {}
+UserInputs = {}
 
 
 # Define a simple route to test the API
@@ -98,19 +99,121 @@ async def get_item_types_from_cp(collection_point: str):
     return get_item_types_by_cp(collection_point)
 
 
+# define a pydantic model for the demand data
+class Demand(BaseModel):
+    item_names: list[str]
+    collection_points: list[str]
+
+
 # Define a GET route for Sample data using the table name
-@app.get("/Demand/{item_name}/{collection_point}")
-async def get_demand(item_name: str, collection_point: str):
+@app.post("/Demand/")
+async def get_demand(demand: Demand):
     try:
-        demand = determin_demand_for_months(item_name, collection_point)
-        return demand
+        demandData = {}
+        for cp in demand.collection_points:
+            demandData.setdefault(cp, {})
+            for item in demand.item_names:
+                demandData[cp][item] = determin_demand_for_months(item, cp)
+        return demandData
     except ValueError as e:
         # Return a 400 error with the error message
         raise HTTPException(status_code=400, detail=str(e))
 
 
+"""  useEffect(() => {
+    const fetchDemandData = async () => {
+      try {
+        let DemandData: { [cp: string]: { [key: string]: any } } = {};
+
+        for (const cp of selectedOptionsCollection) {
+          if (!DemandData[cp.label]) {
+            DemandData[cp.label] = {};
+          }
+
+          for (const item of selectedOptionsItem) {
+            try {
+              const response = await axios.get(
+                `http://127.0.0.1:8000/Demand/${item.label}/${cp.label}`
+              ); // mack a list of the collection points and item types
+
+              if (response.data) {
+                DemandData[cp.label][item.label] = response.data.slice(0, 10); // Limit to 10 items
+              } else {
+                console.log("Invalid response structure");
+              }
+            } catch (error: any) {
+              if (error.response && error.response.status === 400) {
+                console.error(
+                  `Error for ${item.label} at ${cp.label}:`,
+                  error.response.data.detail
+                );
+                setError(` ${error.response.data.detail}`);
+              } else {
+                console.error("Unexpected error:", error);
+              }
+            }
+          }
+        }
+
+        setDemandData(DemandData);
+      } catch (error) {
+        console.error("Error fetching Demand Data:", error);
+      }
+    };
+
+    fetchDemandData();
+  }, [selectedOptionsItem, selectedOptionsCollection]);"""
+
+
 # Define a GET route for qnet
 @app.get("/qnet/")
 async def get_qnet():
-    qnet, graphdata = get_qnet_data()
-    return graphdata
+    graphdata, graph = get_qnet_data()
+    return graph
+
+
+# Define a Pydantic model for the request body
+class UserInput(BaseModel):
+    replenishment_Order: str
+    register_Replenishment_Order: str
+    placed_Replenishment_Order: str
+    Customer_Order: str
+    register_Customer_Order: str
+    placed_Customer_Order: str
+    collection_Point: dict
+
+
+# define a POST route for the User Input
+@app.post("/UserInput/")
+async def create_user_input(userinput: UserInput):
+    UserInputs = userinput
+    return UserInputs
+
+
+# define a pydantic model for the leadtime data
+class LeadTime(BaseModel):
+    leadtimedf: dict
+    itemdf: dict
+    objectdatadf: dict
+
+
+# define a GET route for leadtime data
+@app.get("/leadtime/{register_activity}/{placement_activity}")
+async def get_leadtime(register_activity: str, placement_activity: str):
+    try:
+        # Get the data
+        merged_ro, item_for_object, supplier_for_object = get_lead_time(
+            register_activity, placement_activity
+        )
+
+        # Convert DataFrames to dictionaries with proper datetime handling
+        result = {
+            "lead_time_data": merged_ro,
+            "item_data": item_for_object,
+            "supplier_data": supplier_for_object,
+        }
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

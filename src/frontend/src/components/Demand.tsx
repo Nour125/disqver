@@ -10,13 +10,14 @@ import { Container, Row, Stack } from "react-bootstrap";
 interface DemandProps {
   CollectionPointProp?: string;
   itemTypesProp?: string[];
+  overview: any;
 }
 
 export const Demand: React.FC<DemandProps> = ({
   CollectionPointProp: CollectionPoint,
   itemTypesProp,
+  overview,
 }) => {
-  const [overview, setOverview] = useState<any>();
   const [demandData, setDemandData] = useState<any>();
   const [selectedOptionsItem, setSelectedOptionsItem] = useState<any>([]);
   const [selectedOptionsCollection, setSelectedOptionsCollection] =
@@ -35,60 +36,49 @@ export const Demand: React.FC<DemandProps> = ({
   }, [CollectionPoint, itemTypesProp]);
 
   useEffect(() => {
-    const fetchOverview = async () => {
-      try {
-        const response = await axios.get("http://127.0.0.1:8000/overview/");
-        if (response.data && response.data.Events) {
-          setOverview(response.data);
-        } else {
-          console.log("Invalid response structure");
-        }
-      } catch (error) {
-        console.error("Error fetching overview", error);
-      }
-    };
-
     const fetchDemandData = async () => {
       try {
-        let DemandData: { [cp: string]: { [key: string]: any } } = {};
+        // Prepare the payload to match the Demand model
+        const payload = {
+          item_names: selectedOptionsItem.map((item: any) => item.label), // Array of item names
+          collection_points: selectedOptionsCollection.map(
+            (cp: any) => cp.label
+          ), // Array of collection points
+        };
 
-        for (const cp of selectedOptionsCollection) {
-          if (!DemandData[cp.label]) {
-            DemandData[cp.label] = {};
-          }
+        // Make a POST request with the payload
+        const response = await axios.post(
+          "http://127.0.0.1:8000/Demand/",
+          payload
+        );
 
-          for (const item of selectedOptionsItem) {
-            try {
-              const response = await axios.get(
-                `http://127.0.0.1:8000/Demand/${item.label}/${cp.label}`
-              );
+        if (response.data) {
+          const demandData = response.data;
 
-              if (response.data) {
-                DemandData[cp.label][item.label] = response.data.slice(0, 10); // Limit to 10 items
-              } else {
-                console.log("Invalid response structure");
-              }
-            } catch (error: any) {
-              if (error.response && error.response.status === 400) {
-                console.error(
-                  `Error for ${item.label} at ${cp.label}:`,
-                  error.response.data.detail
-                );
-                setError(` ${error.response.data.detail}`);
-              } else {
-                console.error("Unexpected error:", error);
-              }
+          // Process and limit the data to 10 items per collection point/item
+          for (const cp in demandData) {
+            for (const item in demandData[cp]) {
+              demandData[cp][item] = demandData[cp][item].slice(0, 10);
             }
           }
-        }
 
-        setDemandData(DemandData);
-      } catch (error) {
-        console.error("Error fetching Demand Data:", error);
+          setDemandData(demandData); // Update state with the demand data
+        } else {
+          console.error("Invalid response structure");
+        }
+      } catch (error: any) {
+        if (error.response && error.response.status === 400) {
+          console.error(
+            "Error fetching Demand Data:",
+            error.response.data.detail
+          );
+          setError(error.response.data.detail);
+        } else {
+          console.error("Unexpected error:", error);
+        }
       }
     };
 
-    fetchOverview();
     fetchDemandData();
   }, [selectedOptionsItem, selectedOptionsCollection]);
 
@@ -201,7 +191,7 @@ export const Demand: React.FC<DemandProps> = ({
 
   return (
     <Container>
-      <div>
+      <div className="mb-5">
         <h4>Demand Analysis</h4>
         <Container>
           <Stack gap={3}>

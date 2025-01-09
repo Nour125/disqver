@@ -13,39 +13,24 @@ import * as d3 from "d3";
 import { Container } from "react-bootstrap";
 import { getOverview } from "./QelOverview";
 import { Demand } from "./Demand";
+import { UserInput } from "./UserInput";
+import { Leadtime } from "./Leadtime";
 
-export const QuantityGraph: React.FC = () => {
+interface QuantityGraphProps {
+  overview: any;
+}
+
+export const QuantityGraph: React.FC<QuantityGraphProps> = ({ overview }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [toggleInventory, setToggleInventory] = useState(false);
-  const [toggleActivities, setToggleActivities] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(
     undefined
   );
   const [selectedNodeIdItemtypes, setSelectedNodeIdItemtypes] = useState<
     string[] | undefined
   >(undefined);
-  const [overview, setOverview] = useState<any>(null); // Overview state
+
   const demandRef = useRef<HTMLDivElement>(null); // Ref for scrolling
-  const graphRef = useRef<HTMLDivElement>(null);
-
-  // Handle toggle switch state
-  const handleToggleInventory = () => setToggleInventory(!toggleInventory);
-  const handleToggleActivities = () => setToggleActivities(!toggleActivities);
-
-  // Fetch overview data
-  useEffect(() => {
-    const fetchOverview = async () => {
-      try {
-        const data = await getOverview();
-        setOverview(data);
-      } catch (error) {
-        console.error("Error fetching overview:", error);
-      }
-    };
-
-    fetchOverview();
-  }, []);
 
   useEffect(() => {
     const fetchGraph = async () => {
@@ -71,7 +56,7 @@ export const QuantityGraph: React.FC = () => {
         graphviz("#graph")
           .renderDot(dotString)
           .on("end", () => {
-            graphviz("#graph").fit(true); // Fit the graph to the container
+            graphviz("#graph"); // Fit the graph to the container
             addInteractivity(); // Add interactivity
             setLoading(false); // Disable loading screen
           });
@@ -90,9 +75,9 @@ export const QuantityGraph: React.FC = () => {
 
   // Handle interaction with graph nodes
   const handleNodeClick = async (nodeId: string) => {
-    const itemCollections = (await overview) ? overview["Collection"] : [];
+    const itemCollections = overview ? overview["Collection"] : [];
 
-    if (await itemCollections.includes(nodeId)) {
+    if (itemCollections.includes(nodeId)) {
       console.log("Demand for CollectionPoint:", nodeId);
 
       // Fetch item types associated with the collection point
@@ -100,6 +85,7 @@ export const QuantityGraph: React.FC = () => {
         const response = await axios.get(
           `http://127.0.0.1:8000/itemtypes/${nodeId}`
         );
+
         setSelectedNodeIdItemtypes(response.data);
       } catch (error) {
         console.error("Error fetching item types:", error);
@@ -121,10 +107,33 @@ export const QuantityGraph: React.FC = () => {
     const svg = d3.select("#graph").select("svg");
 
     // Attach click listeners to nodes
-    svg.selectAll("g.node").on("click", async function () {
+    svg.selectAll("g.node").on("click", async function (event: any) {
+      const node = d3.select(this);
       const nodeId = d3.select(this).select("title").text();
       setSelectedNodeId(nodeId);
       await handleNodeClick(nodeId);
+      // Highlight the clicked node
+      console.log("Node clicked:", nodeId);
+
+      const shape = event.target.nodeName;
+
+      console.log("Clicked Shape:", shape);
+      node
+        .select(shape)
+        .transition()
+        .duration(100) // Highlighting animation duration
+        .style("stroke", "red")
+        .style("stroke-width", "3px");
+
+      // Remove the highlight after a short delay
+      setTimeout(() => {
+        node
+          .select(shape)
+          .transition()
+          .duration(100)
+          .style("stroke", "black") // Reset to the default stroke color
+          .style("stroke-width", "1px");
+      }, 1000); // Highlight stays for 1 second
     });
 
     // Optional: Handle edges or clusters
@@ -165,57 +174,29 @@ export const QuantityGraph: React.FC = () => {
   return (
     <Container>
       <div className="mb-5">
-        <div>
-          <h4>Input Information</h4>
-          <Box sx={{ my: 2 }}>
-            <Typography>
-              Please click on an inventory in the process to see the demand
-            </Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={toggleInventory}
-                  onChange={handleToggleInventory}
-                  color="primary"
-                />
-              }
-              label={toggleInventory ? "Primary" : "Secondary"}
-            />
-          </Box>
-          <Box sx={{ my: 2 }}>
-            <Typography>
-              Please click on the activities that are associated with the order
-              to carulate the lead time and service level type
-            </Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={toggleActivities}
-                  onChange={handleToggleActivities}
-                  color="primary"
-                />
-              }
-              label={toggleActivities ? "Primary" : "Secondary"}
-            />
-          </Box>
-        </div>
         <h4>Quantity Graph</h4>
         <Box
+          id="graph"
           sx={{
-            p: 1,
-            border: "1px dashed grey",
-            height: "500px",
+            border: "1px solid #ddd",
+            borderRadius: "4px",
+            height: "auto",
             overflow: "auto",
           }}
-        >
-          <div id="graph" style={{ width: "100%", height: "100%" }}></div>
-        </Box>
+        ></Box>
       </div>
       {/* Demand Component */}
       <div ref={demandRef}>
         <Demand
+          overview={overview}
           CollectionPointProp={selectedNodeId}
           itemTypesProp={selectedNodeIdItemtypes}
+        />
+      </div>
+      <div>
+        <Leadtime
+          register_activity="Place Replenishment Order"
+          placement_activity="Identify incoming Delivery"
         />
       </div>
     </Container>

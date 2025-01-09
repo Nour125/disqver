@@ -35,7 +35,6 @@ export const UploadFile: React.FC = () => {
     setQelOverview(true);
   };
   const handleUploadModal = async (): Promise<any | null> => {
-    console.log("Fetching sample objects");
     setKey((prevKey) => prevKey + 1); // Increment key to remount the component
   };
   return (

@@ -1,5 +1,6 @@
 import os
 import time
+import numpy as np
 import pandas as pd
 from qrpm.app.data_operations.log_overview import get_log_overview
 from qrpm.analysis.dataImport import load_qel_from_file
@@ -53,6 +54,26 @@ def replace_nan_with_empty_string(d: dict):
     return d
 
 
+def clean_dataframe_for_json(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Clean DataFrame by replacing NaN, infinite values, and converting problematic data types
+    for JSON serialization.
+    """
+    # Make a copy to avoid modifying the original DataFrame
+    df = df.copy()
+
+    # Replace NaN/infinite values with None (which converts to null in JSON)
+    df = df.replace([np.inf, -np.inf], None)
+    df = df.where(pd.notnull(df), None)
+
+    # Convert all numeric columns that might contain NaN to objects
+    numeric_columns = df.select_dtypes(include=["float64", "int64"]).columns
+    for col in numeric_columns:
+        df[col] = df[col].astype(object).where(pd.notnull(df[col]), None)
+
+    return df
+
+
 def send_overview_data():
     # create a QEL object from the last uploaded file
     qel = load_qel_from_file(file_path=get_last_uploaded_file())
@@ -94,8 +115,6 @@ def get_table_data(table_name):
     elif table_name == "Quantity Object Types":
         overview = send_overview_data()
         return dict.fromkeys(overview["Quantity Object Types"], "")
-    else:
-        return {"error": "Table name not found."}
 
 
 def get_item_types_by_cp(cp: str):
@@ -104,7 +123,7 @@ def get_item_types_by_cp(cp: str):
 
 
 #############################################################
-############ Determin Forecasting for an item ##############
+############ Determin demand for an item ####################
 #############################################################
 def determin_demand_for_months(
     item_type: str, collection_point: str
@@ -116,6 +135,8 @@ def determin_demand_for_months(
     # Ensure the "Time" column is in datetime format
     qop["Time"] = pd.to_datetime(qop["Time"])
     qop = qop.loc[qop[item_type] < 0]
+    if item_type not in get_item_types_by_cp(collection_point):
+        raise ValueError(f"Item {item_type} not found in the {collection_point}.")
     if "Collection" in qop.columns:
         if collection_point in qop["Collection"].values:
             qop = qop.loc[qop["Collection"].isin([collection_point])]
@@ -133,6 +154,7 @@ def determin_demand_for_months(
     return demand
 
 
+"""
 def determine_forecast(
     alpha: float, item_type: str, period: int
 ):  # period: #number of months to calculate the old forecast
@@ -161,7 +183,7 @@ def forecast_error(item_type: str):
     demandlist = determin_demand_for_months(item_type=item_type)
     MAD = mean_absolute_deviation_for_demand(demandlist)
     return MAD
-
+"""
 
 # print(forecast_error("PADS Tire"))
 # print(determine_forecast(alpha=0.1, item_type="PADS Tire", period=3))
@@ -169,109 +191,103 @@ def forecast_error(item_type: str):
 
 
 #############################################################
-############ Determin Lead Time for an RO ##################
+############ Determin Lead Time for an RO ###################
 #############################################################
 
 
-def get_Placed_RO(qel: QuantityEventLog, Planning_System_cp: str) -> pd.DataFrame:
-    qop = qel.get_quantity_operations()
-    if Planning_System_cp in qop["Collection"].values:
-        qop = qop.loc[qop["Collection"].isin([Planning_System_cp])]
-    else:
-        raise ValueError(f"{Planning_System_cp} not found in the Collection Points.")
-    print(qop)
-    items_in_Planning_System = [
-        item for item in qel.item_types_collection[Planning_System_cp]
-    ]
-    filtered_qop = qop.loc[qop[items_in_Planning_System].gt(0).any(axis=1)]
-    # sortiere zu erst nach zeit
-    filtered_qop["RO_id"] = range(1, len(filtered_qop) + 1)
-    # filtered_qop.to_csv("src\\backend\\files\\placed_RO.csv", index=False)
+def get_lead_time(register_activity: str, placement_activity: str) -> pd.DataFrame:
+    """
+    Calculate lead time based on the QuantityEventLog, register activity, and placement activity.
 
-    return filtered_qop
+    Parameters:
+        qel (QuantityEventLog): Quantity event log object.
+        register_activity (str): Name of the register activity (e.g., PlaceReplenishmentOrder).
+        placement_activity (str): Name of the placement activity (e.g., PutDeliveryInStock).
+
+    Returns:
+        pd.DataFrame: DataFrame containing ro_id, placed_time, delivered_time, and lead_time.
+    """
+    # Step 1: Extract events and map them to objects
+    qel = load_qel_from_file(file_path=get_last_uploaded_file())
+    register_events = qel.get_event_data_activity(
+        register_activity
+    )  # Get events for register activity
+    placement_events = qel.get_event_data_activity(
+        placement_activity
+    )  # Get events for placement activity
+    event_object = qel.e2o  # Event-object mapping
+    object_quantities = qel.object_quantities  # Quantity operations
+    qel_objects = qel.objects  # Objects
+    # Ensure "Index" is treated as a column
+    register_events = register_events.reset_index()  # Convert index to a column
+    placement_events = placement_events.reset_index()  # Convert index to a column
+    qel_objects = qel_objects.reset_index()  # Convert index to a column
+
+    # Step 2: Map objects to register events (PlacedRO)
+    placed_ro = (
+        event_object[event_object["ocel_event_id"].isin(register_events["ocel_id"])]
+        .merge(register_events, left_on="ocel_event_id", right_on="ocel_id")
+        .rename(columns={"ocel_object_id": "ro_id", "ocel_time": "placed_time"})[
+            ["ro_id", "placed_time"]
+        ]
+    )
+
+    # Step 3: Map objects to placement events (DeliveredRO)
+    delivered_ro = (
+        event_object[event_object["ocel_event_id"].isin(placement_events["ocel_id"])]
+        .merge(placement_events, left_on="ocel_event_id", right_on="ocel_id")
+        .rename(columns={"ocel_object_id": "ro_id", "ocel_time": "delivered_time"})[
+            ["ro_id", "delivered_time"]
+        ]
+    )
+
+    # Step 4: Merge PlacedRO and DeliveredRO based on ro_id
+    merged_ro = pd.merge(placed_ro, delivered_ro, on="ro_id")
+    item_for_object = pd.merge(
+        merged_ro, object_quantities, left_on="ro_id", right_on="ocel_id"
+    )[object_quantities.columns]
+    supplier_for_object = pd.merge(
+        merged_ro[["ro_id"]],
+        qel_objects[["ocel_id", "supplier"]],
+        left_on="ro_id",
+        right_on="ocel_id",
+    )[["ro_id", "supplier"]]
+
+    # Step 5: Calculate lead time
+    merged_ro["placed_time"] = pd.to_datetime(merged_ro["placed_time"])
+    merged_ro["delivered_time"] = pd.to_datetime(merged_ro["delivered_time"])
+    merged_ro["lead_time"] = merged_ro["delivered_time"] - merged_ro["placed_time"]
+
+    return (
+        clean_dataframe_for_json(merged_ro),
+        clean_dataframe_for_json(item_for_object),
+        clean_dataframe_for_json(supplier_for_object),
+    )
 
 
-def get_delivered_RO(qel: QuantityEventLog, Physical_cp: str) -> pd.DataFrame:
-    qop = qel.get_quantity_operations()
-    if Physical_cp in qop["Collection"].values:
-        qop = qop.loc[qop["Collection"].isin([Physical_cp])]
-    else:
-        raise ValueError(f"{Physical_cp} not found in the Collection Points.")
-    items_in_Physical_cp = [item for item in qel.item_types_collection[Physical_cp]]
-    filtered_qop = qop.loc[qop[items_in_Physical_cp].gt(0).any(axis=1)]
-
-    # Ensure 'Time' column is in datetime format
-    filtered_qop["Time"] = pd.to_datetime(filtered_qop["Time"])
-    # Extract only the date part (year, month, day)
-    filtered_qop["Time"] = filtered_qop["Time"].dt.date
-    # Group by the 'Time' column (now containing only the date) and sum up the quantities for each item
-    filtered_qop = filtered_qop.groupby("Time", as_index=False).sum()
-
-    # sortiere zu erst nach zeit
-
-    filtered_qop.to_csv("src\\backend\\files\\delivered_RO.csv", index=False)
-
-    return filtered_qop
+print(
+    get_lead_time(
+        "Place Replenishment Order",
+        "Identify incoming Delivery",
+    )
+)
 
 
 # discover qnet
-
-
-def to_graph_data(qnet):
-    nodes = [{"id": place.name, "type": "place"} for place in qnet.places] + [
-        {"id": transition.name, "type": "transition"} for transition in qnet.transitions
-    ]
-    edges = [
-        {"source": arc.source.name, "target": arc.target.name} for arc in qnet.arcs
-    ]
-    return {"nodes": nodes, "edges": edges}
-
-
 def get_qnet_data():
     qel = load_qel_from_file(file_path=get_last_uploaded_file())
-    overview = get_log_overview(qel)
     # data frames
     e2o = qel.get_e2o_relationships()
     qop = qel.get_quantity_operations()
     events = qel.get_events()
     objects = qel.get_objects()
-    initial_item_levels = overview[TERM_INITIAL_ILVL]
 
-    overview[TERM_E2O] = ds.serialise_dataframe(e2o)
-    overview[TERM_QUANTITY_OPERATIONS] = ds.serialise_dataframe(qop)
-    overview[TERM_EVENT_DATA] = ds.serialise_dataframe(events)
-    overview[TERM_OBJECT_DATA] = ds.serialise_dataframe(objects)
-
-    if len(qop) > 0:
-        qty_state = True
-        ilvl = qstate.determine_quantity_state_qop(qop, initial_item_levels)
-        oqty = oqtyy.determine_object_quantity(qop=qop, e2o=e2o, object_types=TERM_ALL)
-        overview[TERM_ITEM_LEVELS] = ds.serialise_dataframe(ilvl)
-        overview[TERM_OBJECT_QTY] = ds.serialise_dataframe(oqty)
-    else:
-        qty_state = False
-
-    state_store = ds.create_initial_state_store(qty_state=qty_state, demo_state=False)
-
-    path = r"src\backend\jsonfiles\overview_data.json"
-    with open(path, "w") as file:
-        json.dump(overview, file)
-
-    overview_json = ds.transform_dict_to_json(overview)
-    events, objects, e2o, qop, ilvl, oqty = ds.get_raw_data_dataframes(overview_json)
     qnet, qnetdata = discover_qnet(
         events=events,
         objects=objects,
         qop=qop,
         e2o=e2o,
     )
-    t = get_dot_string(qnet)
-    print(t)
-    qnet_graph_object = QuantityGraph(qnet)
-    qnet_graph_object.create_graph()
+    graph = get_dot_string(qnet)
 
-    graph_data = to_graph_data(qnet)
-    return qnet, t
-
-
-get_qnet_data()
+    return qnetdata, graph

@@ -16,14 +16,16 @@ interface JsonData {
 export function SampleModal({ tableName, new_sample, ...props }: any) {
   const [sampleData, setSampleData] = useState<JsonData | null>(null);
   const [key, setKey] = useState(0);
+  const [new_sample_clicked, set_new_sample_clicked] = useState<number>(0);
 
   useEffect(() => {
     const fetchSample = async () => {
       const response = await handleSample(tableName);
       setSampleData(response);
+      setKey((prevKey) => prevKey + 1); // Increment key to remount the component
     };
     fetchSample();
-  }, [tableName]);
+  }, [tableName, new_sample_clicked]);
 
   // get the Sample table from the endpoint
   const handleSample = async (tableName: string): Promise<JsonData | null> => {
@@ -31,7 +33,6 @@ export function SampleModal({ tableName, new_sample, ...props }: any) {
       const response = await axios.get(
         "http://127.0.0.1:8000/uploadfile/" + tableName
       );
-      console.log(response.data);
       return response.data;
     } catch (error) {
       console.error("Error getting sample", error);
@@ -65,7 +66,10 @@ export function SampleModal({ tableName, new_sample, ...props }: any) {
         </Modal.Body>
         <Modal.Footer>
           {new_sample && (
-            <Button variant="primary" onClick={() => handleSampleModal()}>
+            <Button
+              variant="primary"
+              onClick={() => set_new_sample_clicked(new_sample_clicked + 1)}
+            >
               New sample
             </Button>
           )}
