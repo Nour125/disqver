@@ -265,12 +265,106 @@ def get_lead_time(register_activity: str, placement_activity: str) -> pd.DataFra
     )
 
 
+"""
 print(
     get_lead_time(
         "Place Replenishment Order",
         "Identify incoming Delivery",
     )
 )
+"""
+#############################################################
+############ Determin Service Level for an RO ###############
+#############################################################
+
+
+def get_service_level(register_activity: str, placement_activity: str) -> pd.DataFrame:
+    # Load data from the QEL system
+    qel = load_qel_from_file(file_path=get_last_uploaded_file())
+
+    # Step 1: Extract event data for the specified activities
+    register_events = qel.get_event_data_activity(register_activity).reset_index()
+    placement_events = qel.get_event_data_activity(placement_activity).reset_index()
+    event_object = qel.e2o
+    qop = qel.get_quantity_operations()
+    itemtyps = qel.item_types
+
+    # Extract objects and timestamps for Place Replenishment Order
+    temp1 = event_object[event_object["ocel_event_id"].isin(register_events["ocel_id"])]
+    temp1 = temp1.merge(
+        register_events[["ocel_id", "ocel_time"]],
+        left_on="ocel_event_id",
+        right_on="ocel_id",
+    )
+    temp1 = temp1.rename(
+        columns={"ocel_object_id": "ro_id", "ocel_time": "placed_time"}
+    )
+    temp1 = temp1[["ro_id", "placed_time", "ocel_id"]]
+
+    # Match event IDs in temp1 with qop and aggregate item quantities
+    temp1 = temp1.merge(
+        qop[["Events"] + list(itemtyps)].groupby("Events").sum().reset_index(),
+        left_on="ocel_id",
+        right_on="Events",
+        how="left",
+    )
+
+    # Sum up all item quantities to get the total QuantityPlaced
+    temp1["QuantityPlaced"] = temp1[list(itemtyps)].sum(axis=1)
+    temp1 = temp1.drop(columns=(list(itemtyps) + ["ocel_id", "Events"]))
+
+    # Extract objects and timestamps for Put Delivery in Stock
+    temp2 = event_object[
+        event_object["ocel_event_id"].isin(placement_events["ocel_id"])
+    ]
+    temp2 = temp2.merge(
+        placement_events[["ocel_id", "ocel_time"]],
+        left_on="ocel_event_id",
+        right_on="ocel_id",
+    )
+    temp2 = temp2.rename(
+        columns={"ocel_object_id": "ro_id", "ocel_time": "delivered_time"}
+    )
+    temp2 = temp2[["ro_id", "delivered_time", "ocel_id"]]
+
+    # Match event IDs in temp2 with qop and aggregate item quantities
+    temp2 = temp2.merge(
+        qop[["Events"] + list(itemtyps)].groupby("Events").sum().reset_index(),
+        left_on="ocel_id",
+        right_on="Events",
+        how="left",
+    )
+
+    # Sum up all item quantities to get the total QuantityArrived
+    temp2["QuantityArrived"] = temp2[list(itemtyps)].sum(axis=1)
+    temp2 = temp2.drop(columns=(list(itemtyps) + ["ocel_id", "Events"]))
+
+    # Merge QuantityPlaced and QuantityArrived
+    result = temp1.merge(temp2, on="ro_id", how="inner")  # wrong mabye inner
+
+    # Calculate the difference and incomplete orders
+    result["difference"] = result["QuantityArrived"].fillna(0) - result[
+        "QuantityPlaced"
+    ].fillna(0)
+    incomplete_orders = (result["difference"] < 0).sum()
+    result = result.drop(columns=["delivered_time", "placed_time"])
+
+    # Calculate Service Level
+    total_orders = len(result)
+    service_level = 1 - (incomplete_orders / total_orders)
+
+    print(f"Service Level (α): {service_level * 100:.2f}%")
+
+    return result, service_level
+
+
+"""
+print(
+    get_service_level(
+        "Register incoming Customer Order",
+        "Pick and pack items for Customer Order",
+    )
+)"""
 
 
 # discover qnet
@@ -291,3 +385,6 @@ def get_qnet_data():
     graph = get_dot_string(qnet)
 
     return qnetdata, graph
+
+
+get_qnet_data()

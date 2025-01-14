@@ -28,7 +28,6 @@ class Item(BaseModel):
 # In-memory storage
 items = []
 overviewdata = {}
-UserInputs = {}
 
 
 # Define a simple route to test the API
@@ -120,56 +119,21 @@ async def get_demand(demand: Demand):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-"""  useEffect(() => {
-    const fetchDemandData = async () => {
-      try {
-        let DemandData: { [cp: string]: { [key: string]: any } } = {};
-
-        for (const cp of selectedOptionsCollection) {
-          if (!DemandData[cp.label]) {
-            DemandData[cp.label] = {};
-          }
-
-          for (const item of selectedOptionsItem) {
-            try {
-              const response = await axios.get(
-                `http://127.0.0.1:8000/Demand/${item.label}/${cp.label}`
-              ); // mack a list of the collection points and item types
-
-              if (response.data) {
-                DemandData[cp.label][item.label] = response.data.slice(0, 10); // Limit to 10 items
-              } else {
-                console.log("Invalid response structure");
-              }
-            } catch (error: any) {
-              if (error.response && error.response.status === 400) {
-                console.error(
-                  `Error for ${item.label} at ${cp.label}:`,
-                  error.response.data.detail
-                );
-                setError(` ${error.response.data.detail}`);
-              } else {
-                console.error("Unexpected error:", error);
-              }
-            }
-          }
-        }
-
-        setDemandData(DemandData);
-      } catch (error) {
-        console.error("Error fetching Demand Data:", error);
-      }
-    };
-
-    fetchDemandData();
-  }, [selectedOptionsItem, selectedOptionsCollection]);"""
-
-
 # Define a GET route for qnet
 @app.get("/qnet/")
 async def get_qnet():
-    graphdata, graph = get_qnet_data()
-    return graph
+    try:
+        # Get the data
+        graphData, graph = get_qnet_data()
+
+        # Convert data to dictionaries with proper datetime handling
+        result = {
+            "graph": graph,
+            "graphData": graphData,
+        }
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # Define a Pydantic model for the request body
@@ -184,17 +148,19 @@ class UserInput(BaseModel):
 
 
 # define a POST route for the User Input
+
+
 @app.post("/UserInput/")
 async def create_user_input(userinput: UserInput):
-    UserInputs = userinput
-    return UserInputs
+    global userInputs
+    userInputs = userinput
+    return userInputs
 
 
-# define a pydantic model for the leadtime data
-class LeadTime(BaseModel):
-    leadtimedf: dict
-    itemdf: dict
-    objectdatadf: dict
+# define a GET route for User Input
+@app.get("/UserInput/")
+async def get_user_input():
+    return userInputs
 
 
 # define a GET route for leadtime data
@@ -211,6 +177,27 @@ async def get_leadtime(register_activity: str, placement_activity: str):
             "lead_time_data": merged_ro,
             "item_data": item_for_object,
             "supplier_data": supplier_for_object,
+        }
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# define a GET route for leadtime data
+@app.get("/servicelevel/{register_activity}/{placement_activity}")
+async def get_servicelevel(register_activity: str, placement_activity: str):
+    try:
+        # Get the data
+        serviceLevelData, serviceLevel = get_service_level(
+            register_activity, placement_activity
+        )
+
+        # Convert DataFrames to dictionaries with proper datetime handling
+        result = {
+            "service_level_data": serviceLevelData,
+            "serviceLevel": serviceLevel,
         }
 
         return result

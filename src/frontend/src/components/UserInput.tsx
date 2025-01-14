@@ -250,7 +250,6 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
       };
 
       // Log the payload to verify the structure
-      console.log("Payload:", payload);
 
       // Make the POST request
       const response = await axios.post(

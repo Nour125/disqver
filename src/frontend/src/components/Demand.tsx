@@ -14,7 +14,7 @@ interface DemandProps {
 }
 
 export const Demand: React.FC<DemandProps> = ({
-  CollectionPointProp: CollectionPoint,
+  CollectionPointProp,
   itemTypesProp,
   overview,
 }) => {
@@ -27,13 +27,13 @@ export const Demand: React.FC<DemandProps> = ({
 
   useEffect(() => {
     // Initialize state only when props change
-    if (CollectionPoint) {
-      setSelectedOptionsCollection([{ label: CollectionPoint }]);
+    if (CollectionPointProp) {
+      setSelectedOptionsCollection([{ label: CollectionPointProp }]);
     }
     if (itemTypesProp) {
       setSelectedOptionsItem(itemTypesProp.map((item) => ({ label: item })));
     }
-  }, [CollectionPoint, itemTypesProp]);
+  }, [CollectionPointProp, itemTypesProp]);
 
   useEffect(() => {
     const fetchDemandData = async () => {
