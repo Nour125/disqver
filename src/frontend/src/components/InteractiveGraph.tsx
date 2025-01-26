@@ -12,9 +12,13 @@ import next from "next";
 
 interface QuantityGraphProps {
   overview: any;
+  userInputData: any;
 }
 
-export const QuantityGraph: React.FC<QuantityGraphProps> = ({ overview }) => {
+export const QuantityGraph: React.FC<QuantityGraphProps> = ({
+  overview,
+  userInputData,
+}) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<any>(undefined);
@@ -26,7 +30,7 @@ export const QuantityGraph: React.FC<QuantityGraphProps> = ({ overview }) => {
   >(undefined);
   const [demandCollectionPointItemtypes, setdemandCollectionPointItemtype] =
     useState<string[] | undefined>(undefined);
-  const [userInputData, setUserInputData] = useState<any>(undefined);
+  // const [userInputData, setUserInputData] = useState<any>(undefined);
 
   const [firstActivityNode, setFirstActivityNode] = useState<any>(undefined);
   const [secondActivityNode, setSecondActivityNode] = useState<any>(undefined);
@@ -66,7 +70,8 @@ export const QuantityGraph: React.FC<QuantityGraphProps> = ({ overview }) => {
       }, 1000); // Highlight stays for 1 second
     }
   }
-
+  {
+    /*
   useEffect(() => {
     const getUserInputData = async () => {
       try {
@@ -78,6 +83,8 @@ export const QuantityGraph: React.FC<QuantityGraphProps> = ({ overview }) => {
     };
     getUserInputData();
   }, []);
+*/
+  }
 
   useEffect(() => {
     const initializeGraph = async () => {

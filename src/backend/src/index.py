@@ -204,3 +204,26 @@ async def get_servicelevel(register_activity: str, placement_activity: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class Qstate(BaseModel):
+    item_names: list[str]
+    collection_points: list[str]
+
+
+# define a post route for qstate data
+@app.post("/qstate/")
+async def get_qstate(qstate: Qstate):
+    try:
+        qstateData = {}
+        for cp in qstate.collection_points:
+            qstateData.setdefault(cp, {})
+            temp = get_quantity_state(cp)
+            qstateData[cp] = temp[
+                ["Time"] + [item for item in qstate.item_names if item in temp.columns]
+            ]
+
+        return qstateData
+    except ValueError as e:
+        # Return a 400 error with the error message
+        raise HTTPException(status_code=400, detail=str(e))

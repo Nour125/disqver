@@ -137,7 +137,7 @@ def determin_demand_for_months(
     qop = qop.loc[qop[item_type] < 0]
     if item_type not in get_item_types_by_cp(collection_point):
         raise ValueError(f"Item {item_type} not found in the {collection_point}.")
-    if "Collection" in qop.columns:
+    elif "Collection" in qop.columns:
         if collection_point in qop["Collection"].values:
             qop = qop.loc[qop["Collection"].isin([collection_point])]
         else:
@@ -387,4 +387,13 @@ def get_qnet_data():
     return qnetdata, graph
 
 
-get_qnet_data()
+# get the quantity state for the given cp
+def get_quantity_state(cp: str):
+    qel = load_qel_from_file(file_path=get_last_uploaded_file())
+    qop = qel.get_quantity_operations()
+    initial_item_level = qel.get_initial_item_level_cp(cp=cp)
+    qstate_data = qstate.determine_quantity_state_cp(qop, cp, initial_item_level, False)
+    return qstate_data
+
+
+get_quantity_state("Company Warehouse")

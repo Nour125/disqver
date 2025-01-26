@@ -27,7 +27,7 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
   const [selectedRO_bool, setSelectedRO_bool] = useState(false);
   const [selectedCO_bool, setSelectedCO_bool] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
-
+  const [inputData, setInputData] = useState<any>(undefined);
   const [selected_RO, setSelected_RO] = useState<any>(undefined);
   const [selected_CO, setSelected_CO] = useState<any>(undefined);
   const [register_Replenishment_Order, set_register_Replenishment_Order] =
@@ -256,9 +256,10 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
         "http://127.0.0.1:8000/UserInput/",
         payload
       );
+      setInputData(response.data);
 
       // Handle success
-      console.log("Response:", response.data);
+      console.log("Response:", inputData);
     } catch (error) {
       // Handle errors
       console.error("Error submitting data:", error);
@@ -317,7 +318,7 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
       {/* Conditionally render QuantityGraph */}
       {showGraph && (
         <div style={{ marginTop: "20px" }}>
-          <QuantityGraph overview={overview} />
+          <QuantityGraph overview={overview} userInputData={inputData} />
         </div>
       )}
     </Container>

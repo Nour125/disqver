@@ -91,7 +91,7 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
       }
     }
     fetchLeadtime();
-  }, [registeractivity, placementactivity, selectedOptionsObject]);
+  }, [registeractivity, placementactivity]);
 
   function formatLeadTime(leadTimeInSeconds: number): string {
     const days = Math.floor(leadTimeInSeconds / (24 * 60 * 60));
@@ -209,7 +209,6 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
           <Stack gap={3}>
             <SelectOrdertype />
             {leadtime && <LeadtimeTable />}
-            {/*<LeadtimeLineChart />*/}
           </Stack>
         </Container>
       </div>
