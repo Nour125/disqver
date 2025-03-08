@@ -239,103 +239,115 @@ export const Demand: React.FC<DemandProps> = ({
     return <>{charts}</>;
   }
   const InventoryChart = ({ data }: { data: Record<string, LocationData> }) => {
+    const [loading, setLoading] = React.useState(true);
+
+    useEffect(() => {
+      setLoading(false);
+    }, [data]);
+
+    // Move all hooks before any conditional returns
+    const chartData = useMemo(() => {
+      if (!data || Object.keys(data).length === 0) return {};
+
+      const processData = (
+        rawData: Record<string, LocationData>
+      ): ChartData => {
+        const results: ChartData = {};
+
+        Object.entries(rawData).forEach(([location, locationData]) => {
+          const timePoints = Object.values(locationData.Time);
+          const items = Object.keys(locationData).filter((k) => k !== "Time");
+
+          results[location] = timePoints.map((time, idx) => {
+            const point: { [key: string]: Date | number; timestamp: Date } = {
+              timestamp: new Date(time),
+            };
+
+            items.forEach((item) => {
+              const itemData = locationData[item] as { [key: string]: number };
+              point[item] = itemData[idx + 1] || 0;
+            });
+
+            return point;
+          });
+        });
+
+        return results;
+      };
+
+      return processData(data);
+    }, [data]);
+
+    const timestamps = useMemo(() => {
+      if (!chartData || Object.keys(chartData).length === 0) return [];
+
+      const allTimes = Object.values(chartData)
+        .flat()
+        .map((d) => d.timestamp.getTime());
+
+      return Array.from(new Set(allTimes)).sort((a, b) => a - b);
+    }, [chartData]);
+
+    const series = useMemo(() => {
+      if (!chartData || Object.keys(chartData).length === 0) return [];
+
+      return Object.entries(chartData).flatMap(([location, locationData]) => {
+        if (locationData.length === 0) return [];
+
+        const timestampMap = new Map<number, { [key: string]: number }>();
+        locationData.forEach((point) => {
+          const { timestamp, ...rest } = point;
+          timestampMap.set(
+            timestamp.getTime(),
+            rest as { [key: string]: number }
+          );
+        });
+
+        const itemKeys = Object.keys(locationData[0]).filter(
+          (key) => key !== "timestamp"
+        );
+
+        return itemKeys.map((key) => ({
+          name: `${location} - ${key}`,
+          data: timestamps.map((time) => timestampMap.get(time)?.[key] || 0),
+        }));
+      });
+    }, [chartData, timestamps]);
+
+    const options = useMemo<ApexCharts.ApexOptions>(
+      () => ({
+        chart: { type: "line", height: undefined },
+        xaxis: {
+          type: "datetime",
+          categories: timestamps.map((t) => new Date(t).toISOString()),
+        },
+        stroke: { curve: "stepline" },
+        dataLabels: { enabled: false },
+        title: { text: "", align: "left" },
+        markers: { hover: { sizeOffset: 4 } },
+      }),
+      [timestamps]
+    );
+
+    // Now do the early return after all hooks
     if (!data || Object.keys(data).length === 0) {
-      console.log("No data received");
       return null;
     }
-
-    const processData = (rawData: Record<string, LocationData>): ChartData => {
-      const results: ChartData = {};
-
-      Object.entries(rawData).forEach(([location, locationData]) => {
-        const timePoints = Object.values(locationData.Time);
-        const items = Object.keys(locationData).filter((k) => k !== "Time");
-
-        results[location] = timePoints.map((time, idx) => {
-          const point: { [key: string]: Date | number; timestamp: Date } = {
-            timestamp: new Date(time),
-          };
-          items.forEach((item) => {
-            const itemData = locationData[item] as { [key: string]: number };
-            point[item] = itemData[idx + 1] || 0; // Ensure valid indexing
-          });
-          return point;
-        });
-      });
-
-      console.log("Processed data:", results);
-      return results;
-    };
-
-    const chartData = processData(data);
-
-    // Flatten the data for ApexCharts
-    const timestamps = Array.from(
-      new Set(
-        Object.values(chartData)
-          .flat()
-          .map((d) => d.timestamp.getTime())
-      )
-    ).sort();
-
-    const series = Object.keys(chartData).flatMap((location) => {
-      const locationData = chartData[location];
-
-      return Object.keys(locationData[0] || {})
-        .filter((key) => key !== "timestamp")
-        .map((key) => ({
-          name: `${location} - ${key}`,
-          data: timestamps.map((time) => {
-            const point = locationData.find(
-              (d) => d.timestamp.getTime() === time
-            );
-            return point ? (point[key] as number) : 0;
-          }),
-        }));
-    });
-
-    const options: ApexCharts.ApexOptions = {
-      chart: {
-        type: "line" as "line", // Explicitly casting to the expected literal type
-        height: undefined,
-      },
-      xaxis: {
-        type: "datetime",
-        categories: timestamps.map((t) => new Date(t).toISOString()),
-      },
-      stroke: {
-        curve: "stepline",
-      },
-      dataLabels: {
-        enabled: false,
-      },
-      title: {
-        text: "",
-        align: "left",
-      },
-      markers: {
-        hover: {
-          sizeOffset: 4,
-        },
-      },
-    };
-    setLoading(false);
 
     return (
       <div
         style={{
-          width: "100%", // Responsive width
-          maxWidth: "auto", // Optional: Limit the maximum width
-          height: "auto", // Automatically adjust height
-          aspectRatio: "16 / 9", // Maintain aspect ratio (16:9)
-          margin: "0 auto", // Center the chart horizontally
+          width: "100%",
+          height: "100%",
+          aspectRatio: "16 / 9",
+          margin: "0 auto",
         }}
       >
         <ReactApexChart
           options={options}
           series={series}
           type="line"
-          height={500} // Let the container control the height
+          height="100%"
         />
       </div>
     );

@@ -3,7 +3,7 @@
 import axios from "axios";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { Container } from "react-bootstrap";
-import Select from "react-select";
+import Select, { ActionMeta, SingleValue } from "react-select";
 import Grid from "@mui/material/Grid";
 import makeAnimated from "react-select/animated";
 import {
@@ -12,6 +12,8 @@ import {
   FormControlLabel,
   Radio,
   RadioGroup,
+  MenuItem,
+  SelectChangeEvent,
 } from "@mui/material";
 import Button from "react-bootstrap/Button";
 import { QuantityGraph } from "./InteractiveGraph";
@@ -38,15 +40,6 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
     useState<any>(undefined);
   const [placed_Customer_Order, set_placed_Customer_Order] =
     useState<any>(undefined);
-  // State to track selected options for each collection point
-  const [selectedOptions, setSelectedOptions] = useState<{
-    [key: string]: "Physical" | "Planning" | null;
-  }>(
-    CollectionPoints.reduce((acc: { [key: string]: null }, cp: string) => {
-      acc[cp] = null;
-      return acc;
-    }, {})
-  );
 
   function AnimatedRO() {
     return (
@@ -67,7 +60,7 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
             setSelectedRO_bool(true);
           }}
           value={selected_RO}
-          placeholder="Select an option"
+          placeholder="Select an object type which you buy"
           isClearable={true}
         />
         {selectedRO_bool && (
@@ -132,7 +125,7 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
             setSelectedCO_bool(true);
           }}
           value={selected_CO}
-          placeholder="Select an option"
+          placeholder="Select an object type which you sell"
           isClearable={true}
         />
         {selectedCO_bool && (
@@ -178,63 +171,111 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
       </Container>
     );
   }
-  function CollectionPoints_sliders() {
-    // Handle change when a checkbox is selected
-    const handleChange = (
-      collectionPoint: string,
-      value: "Physical" | "Planning"
-    ) => {
-      setSelectedOptions((prev) => ({
-        ...prev,
-        [collectionPoint]: value,
-      }));
-    };
+  // State to track selected options for each collection point
+  interface CollectionPointSelection {
+    type: "Physical" | "Planning" | null;
+    planningPartner?: string | null; // Only relevant if type is "Physical"
+  }
 
+  const [selectedCpOptions, setSelectedCpOptions] = useState<{
+    [key: string]: CollectionPointSelection;
+  }>(
+    CollectionPoints.reduce(
+      (acc: { [key: string]: CollectionPointSelection }, cp: string) => {
+        acc[cp] = { type: null, planningPartner: null };
+        return acc;
+      },
+      {}
+    )
+  );
+
+  interface Option {
+    value: string;
+    label: string;
+  }
+
+  const CollectionPoints_sliders = () => {
     return (
       <Box>
         <Typography variant="h6" align="center" sx={{ mb: 2 }}>
           Collection Points
         </Typography>
 
-        {/* Collection Points with Checkboxes */}
-        {CollectionPoints.map((cp: string) => (
-          <Box
-            key={cp}
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mb: 1 }}
-          >
-            <Typography variant="body1" sx={{ mr: 2 }}>
-              {cp}
-            </Typography>
+        {CollectionPoints.map((cp: string) => {
+          // Create options for react-select
+          const options: Option[] = CollectionPoints.filter(
+            (p: string) => p !== cp
+          ).map((p: string) => ({ value: p, label: p }));
 
-            <RadioGroup
-              row
-              value={selectedOptions[cp]}
-              onChange={(e) =>
-                handleChange(cp, e.target.value as "Physical" | "Planning")
-              }
+          return (
+            <Box
+              key={cp}
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ mb: 1 }}
             >
-              <Typography variant="body1">Physical</Typography>
-              <FormControlLabel
-                value="Physical"
-                control={<Radio color="primary" />}
-                label=""
-              />
-              <Typography variant="body1">Planning</Typography>
-              <FormControlLabel
-                value="Planning"
-                control={<Radio color="primary" />}
-                label=""
-              />
-            </RadioGroup>
-          </Box>
-        ))}
+              <Typography variant="body1" sx={{ mr: 2 }}>
+                {cp}
+              </Typography>
+
+              <RadioGroup
+                row
+                value={selectedCpOptions[cp]?.type || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const value = e.target.value as "Physical" | "Planning";
+                  setSelectedCpOptions((prev) => ({
+                    ...prev,
+                    [cp]: {
+                      type: value,
+                      planningPartner:
+                        value === "Physical" ? prev[cp]?.planningPartner : null,
+                    },
+                  }));
+                }}
+              >
+                <FormControlLabel
+                  value="Physical"
+                  control={<Radio color="primary" />}
+                  label="Physical"
+                />
+                <FormControlLabel
+                  value="Planning"
+                  control={<Radio color="primary" />}
+                  label="Planning"
+                />
+              </RadioGroup>
+
+              {selectedCpOptions[cp]?.type === "Physical" && (
+                <Box sx={{ ml: 2, minWidth: 220 }}>
+                  <Select<Option>
+                    value={
+                      options.find(
+                        (opt) =>
+                          opt.value === selectedCpOptions[cp]?.planningPartner
+                      ) || null
+                    }
+                    onChange={(newValue: SingleValue<Option>) => {
+                      setSelectedCpOptions((prev) => ({
+                        ...prev,
+                        [cp]: {
+                          ...prev[cp],
+                          planningPartner: newValue?.value || null,
+                        },
+                      }));
+                    }}
+                    placeholder="Choose the corresponding planning system"
+                    options={options}
+                    isClearable
+                  />
+                </Box>
+              )}
+            </Box>
+          );
+        })}
       </Box>
     );
-  }
-
+  };
   const handleClick = async () => {
     setShowGraph(true);
     try {
@@ -246,7 +287,7 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
         Customer_Order: selected_CO.label,
         register_Customer_Order: register_Customer_Order.label,
         placed_Customer_Order: placed_Customer_Order.label,
-        collection_Point: selectedOptions, // Assuming `selectedOptions` is already a dictionary
+        collection_Point: selectedCpOptions, // Assuming `selectedOptions` is already a dictionary
       };
 
       // Log the payload to verify the structure
@@ -257,6 +298,7 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
         payload
       );
       setInputData(response.data);
+      console.log("Response:", response.data);
 
       // Handle success
       console.log("Response:", inputData);
@@ -303,7 +345,7 @@ export const UserInput: React.FC<UserInputProps> = ({ overview }) => {
           onClick={handleClick}
           disabled={
             !(
-              Object.values(selectedOptions).every((option) => option) &&
+              Object.values(selectedCpOptions).every((option) => option) &&
               register_Replenishment_Order &&
               placed_Replenishment_Order &&
               register_Customer_Order &&

@@ -186,21 +186,36 @@ async def get_leadtime(register_activity: str, placement_activity: str):
 
 
 # define a GET route for leadtime data
-@app.get("/servicelevel/{register_activity}/{placement_activity}")
-async def get_servicelevel(register_activity: str, placement_activity: str):
+@app.get("/servicelevel/{register_activity}/{placement_activity}/{service_level_type}")
+async def get_servicelevel(
+    register_activity: str, placement_activity: str, service_level_type: str
+):
     try:
-        # Get the data
-        serviceLevelData, serviceLevel = get_service_level(
-            register_activity, placement_activity
-        )
-
-        # Convert DataFrames to dictionaries with proper datetime handling
-        result = {
-            "service_level_data": serviceLevelData,
-            "serviceLevel": serviceLevel,
-        }
-
-        return result
+        ra = register_activity
+        pa = placement_activity
+        if ra == userInputs.register_Replenishment_Order:
+            ot = userInputs.replenishment_Order
+        else:
+            ot = userInputs.Customer_Order
+        pla_cp = [
+            key
+            for key, value in userInputs.collection_Point.items()
+            if value["type"] == "Planning"
+        ]
+        phy_cp = [
+            key
+            for key, value in userInputs.collection_Point.items()
+            if value["type"] == "Physical"
+            and "planningPartner" in value
+            and value["planningPartner"] in pla_cp
+        ]
+        slt = service_level_type
+        print(ot, ra, pa, pla_cp, phy_cp, slt)
+        if not pla_cp or not phy_cp:
+            raise HTTPException(
+                status_code=400, detail="No valid collection points found."
+            )
+        return get_service_level(slt, ra, pa, pla_cp[0], phy_cp[0], ot)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

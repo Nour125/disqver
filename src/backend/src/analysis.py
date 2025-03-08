@@ -125,6 +125,8 @@ def get_item_types_by_cp(cp: str):
 #############################################################
 ############ Determin demand for an item ####################
 #############################################################
+
+
 def determin_demand_for_months(
     item_type: str, collection_point: str
 ) -> list[tuple[str, float]]:
@@ -154,44 +156,8 @@ def determin_demand_for_months(
     return demand
 
 
-"""
-def determine_forecast(
-    alpha: float, item_type: str, period: int
-):  # period: #number of months to calculate the old forecast
-    # item_type: the item type for which the forecast is to be determined
-    # alpha: the smoothing constant
-
-    demandlist = determin_demand_for_months(item_type=item_type)
-    demandlist = demandlist[-period:]
-    old_forecast = (sum([demand for (_, demand) in demandlist])) / len(demandlist)
-    print(old_forecast)
-    last_period_demand = demandlist[-1][1]
-    print(last_period_demand)
-    new_forecast = old_forecast + (alpha * (last_period_demand - old_forecast))
-    return round(new_forecast, 1)
-
-
-def mean_absolute_deviation_for_demand(demand: list[tuple[str, float]]):
-    # calculate the mean absolute deviation for the demand
-    demand = [demand for (_, demand) in demand]
-    mean_demand = sum(demand) / len(demand)
-    mean_absolute_deviation = sum([abs(d - mean_demand) for d in demand]) / len(demand)
-    return round(mean_absolute_deviation, 1)
-
-
-def forecast_error(item_type: str):
-    demandlist = determin_demand_for_months(item_type=item_type)
-    MAD = mean_absolute_deviation_for_demand(demandlist)
-    return MAD
-"""
-
-# print(forecast_error("PADS Tire"))
-# print(determine_forecast(alpha=0.1, item_type="PADS Tire", period=3))
-# print(determin_demand_for_months("Tube", "Company Warehouse"))
-
-
 #############################################################
-############ Determin Lead Time for an RO ###################
+################ Determin Lead Time for #####################
 #############################################################
 
 
@@ -240,24 +206,33 @@ def get_lead_time(register_activity: str, placement_activity: str) -> pd.DataFra
             ["ro_id", "delivered_time"]
         ]
     )
+    # step 4: delet rows where ro_id comes more than once in deliverd_ro
+    delivered_ro = delivered_ro.drop_duplicates(subset=["ro_id"])
+    pd.set_option("display.max_rows", None)
+    print(delivered_ro)
 
-    # Step 4: Merge PlacedRO and DeliveredRO based on ro_id
+    # Step 5: Merge PlacedRO and DeliveredRO based on ro_id
     merged_ro = pd.merge(placed_ro, delivered_ro, on="ro_id")
     item_for_object = pd.merge(
         merged_ro, object_quantities, left_on="ro_id", right_on="ocel_id"
     )[object_quantities.columns]
-    supplier_for_object = pd.merge(
-        merged_ro[["ro_id"]],
-        qel_objects[["ocel_id", "supplier"]],
-        left_on="ro_id",
-        right_on="ocel_id",
-    )[["ro_id", "supplier"]]
+    if "supplier" in qel_objects.columns:
+        supplier_for_object = pd.merge(
+            merged_ro[["ro_id"]],
+            qel_objects[["ocel_id", "supplier"]],
+            left_on="ro_id",
+            right_on="ocel_id",
+        )[["ro_id", "supplier"]]
+    else:
+        supplier_for_object = pd.DataFrame(
+            {"ro_id": merged_ro["ro_id"], "supplier": [None] * len(merged_ro)}
+        )
 
     # Step 5: Calculate lead time
     merged_ro["placed_time"] = pd.to_datetime(merged_ro["placed_time"])
     merged_ro["delivered_time"] = pd.to_datetime(merged_ro["delivered_time"])
     merged_ro["lead_time"] = merged_ro["delivered_time"] - merged_ro["placed_time"]
-
+    print(clean_dataframe_for_json(supplier_for_object))
     return (
         clean_dataframe_for_json(merged_ro),
         clean_dataframe_for_json(item_for_object),
@@ -265,20 +240,34 @@ def get_lead_time(register_activity: str, placement_activity: str) -> pd.DataFra
     )
 
 
-"""
-print(
-    get_lead_time(
-        "Place Replenishment Order",
-        "Identify incoming Delivery",
-    )
-)
-"""
 #############################################################
-############ Determin Service Level for an RO ###############
+################# Determin Service Level ####################
 #############################################################
 
+"""
+def get_alpha_service_level(CO: str, cps: list[str]):
+    qel = load_qel_from_file(file_path=get_last_uploaded_file())
+    qop = qel.get_quantity_operations()
+    qstate_cp = {}
+    for cp in cps:
+        initial_item_level = qel.get_initial_item_level_cp(cp=cp)
+        qstate_data = qstate.determine_quantity_state_cp(
+            qop, cp, initial_item_level, False
+        )
+        qstate_cp[cp] = qstate_data
 
-def get_service_level(register_activity: str, placement_activity: str) -> pd.DataFrame:
+    item_types = [item for cp in cps for item in get_item_types_by_cp(cp)]
+    customer_order_table = qel.get_objects_of_object_type(CO)
+    # customer_order_items = [item]
+    pass
+"""
+
+# get_alpha_service_level("Customer Order", ["Company Warehouse"])
+
+
+def get_alpha_service_level(
+    register_activity: str, placement_activity: str
+) -> pd.DataFrame:
     # Load data from the QEL system
     qel = load_qel_from_file(file_path=get_last_uploaded_file())
 
@@ -358,13 +347,152 @@ def get_service_level(register_activity: str, placement_activity: str) -> pd.Dat
     return result, service_level
 
 
-"""
+def get_beta_service_level(
+    register_activity: str,
+    placement_activity: str,
+    planing_cp: str,
+    physical_cp: str,
+    order_type: str,
+):
+    import pandas as pd
+
+    # Load data from the QEL system
+    qel = load_qel_from_file(file_path=get_last_uploaded_file())
+
+    # Extract event data for the specified activities
+    register_events = qel.get_event_data_activity(register_activity).reset_index()
+    placement_events = qel.get_event_data_activity(placement_activity).reset_index()
+
+    # Consider only events associated with the specified order type
+    valid_order_ids = qel.get_objects_of_object_type(
+        order_type
+    )  # returns a set of order IDs
+    event_object = qel.e2o
+    # Filter event_object to only include orders of the given order type
+    event_object = event_object[event_object["ocel_object_id"].isin(valid_order_ids)]
+
+    qop = qel.get_quantity_operations()
+    itemtyps = qel.item_types
+
+    # ----- Process Register (Placement) Events for Bought Quantities -----
+    temp1 = event_object[event_object["ocel_event_id"].isin(register_events["ocel_id"])]
+    temp1 = temp1.merge(
+        register_events[["ocel_id", "ocel_time"]],
+        left_on="ocel_event_id",
+        right_on="ocel_id",
+    )
+    temp1 = temp1.rename(
+        columns={"ocel_object_id": "ro_id", "ocel_time": "placed_time"}
+    )
+    temp1 = temp1[["ro_id", "placed_time", "ocel_id"]]
+
+    # Filter qop to only include records from the planning control point
+    qop_planning = qop[qop["Collection"] == planing_cp]
+
+    # Merge with filtered qop to get item-level quantities at placement
+    temp1 = temp1.merge(
+        qop_planning[["Events"] + list(itemtyps)].groupby("Events").sum().reset_index(),
+        left_on="ocel_id",
+        right_on="Events",
+        how="left",
+    )
+
+    # ----- Process Placement (Arrival) Events for Arrived Quantities -----
+    temp2 = event_object[
+        event_object["ocel_event_id"].isin(placement_events["ocel_id"])
+    ]
+    temp2 = temp2.merge(
+        placement_events[["ocel_id", "ocel_time"]],
+        left_on="ocel_event_id",
+        right_on="ocel_id",
+    )
+    temp2 = temp2.rename(
+        columns={"ocel_object_id": "ro_id", "ocel_time": "delivered_time"}
+    )
+    temp2 = temp2[["ro_id", "delivered_time", "ocel_id"]]
+
+    # Filter qop to only include records from the physical control point
+    qop_physical = qop[qop["Collection"] == physical_cp]
+
+    # Merge with filtered qop to get item-level quantities at arrival
+    temp2 = temp2.merge(
+        qop_physical[["Events"] + list(itemtyps)].groupby("Events").sum().reset_index(),
+        left_on="ocel_id",
+        right_on="Events",
+        how="left",
+    )
+
+    # If more than one record exists for the same ro_id in temp2,
+    # keep only the one with the earliest delivered_time.
+    temp2 = temp2.sort_values("delivered_time").drop_duplicates(
+        subset=["ro_id"], keep="first"
+    )
+
+    # Only consider orders that appear in both temp1 and temp2
+    temp1 = temp1[temp1["ro_id"].isin(temp2["ro_id"])]
+
+    # ----- Aggregation Across Orders per Item Type -----
+    # Sum quantities for each item type over all placement events (bought quantities)
+    bought_totals = temp1[list(itemtyps)].sum()
+    # Sum quantities for each item type over all arrival events (arrived quantities)
+    arrived_totals = temp2[list(itemtyps)].sum()
+    # Check if any of the sums are negative, then multiply all by -1 in bought_totals and arrived_totals
+    if (bought_totals < 0).any() or (arrived_totals < 0).any():
+        bought_totals = bought_totals.apply(lambda x: -x)
+        arrived_totals = arrived_totals.apply(lambda x: -x)
+    # Build a DataFrame with the aggregated data per item
+    beta_df = pd.DataFrame(
+        {
+            "item": list(itemtyps),
+            "q_bought": bought_totals.values,
+            "q_arrived": arrived_totals.values,
+        }
+    )
+
+    # Calculate beta_i for each item, handling division by zero if any q_bought is zero
+    beta_df["beta_i"] = beta_df.apply(
+        lambda row: row["q_arrived"] / row["q_bought"] if row["q_bought"] > 0 else None,
+        axis=1,
+    )
+
+    # Compute overall beta as the average of item-level beta values (ignoring items with no sales)
+    valid_betas = beta_df["beta_i"].dropna()
+    overall_beta = valid_betas.mean() if not valid_betas.empty else None
+
+    beta_df = beta_df.replace({np.nan: None})
+
+    print(f"Beta Service Level (β): {overall_beta * 100:.2f}%")
+
+    return beta_df, overall_beta
+
+
 print(
-    get_service_level(
+    get_beta_service_level(
         "Register incoming Customer Order",
         "Pick and pack items for Customer Order",
+        "Planning System",
+        "Company Warehouse",
+        "Customer Order",
     )
-)"""
+)
+
+
+def get_service_level(
+    service_level_type: str,
+    register_activity: str,
+    placement_activity: str,
+    planing_cp: str,
+    physical_cp: str,
+    order_type: str,
+):
+    if service_level_type == "Alpha":
+        return get_alpha_service_level(register_activity, placement_activity)
+    elif service_level_type == "Beta":
+        return get_beta_service_level(
+            register_activity, placement_activity, planing_cp, physical_cp, order_type
+        )
+    else:
+        raise ValueError(f"Service level type {service_level_type} not supported.")
 
 
 # discover qnet
@@ -394,6 +522,3 @@ def get_quantity_state(cp: str):
     initial_item_level = qel.get_initial_item_level_cp(cp=cp)
     qstate_data = qstate.determine_quantity_state_cp(qop, cp, initial_item_level, False)
     return qstate_data
-
-
-get_quantity_state("Company Warehouse")

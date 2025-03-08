@@ -104,8 +104,15 @@ export const QuantityGraph: React.FC<QuantityGraphProps> = ({
         }
 
         // Render graph and set up interactivity in one place
+        const graphContainer = document.getElementById("graph");
+        const containerWidth = graphContainer
+          ? graphContainer.clientWidth
+          : 800;
+
         graphviz("#graph")
           .fit(true)
+          .height(500)
+          .width(containerWidth - 1)
           .renderDot(dotString)
           .on("end", () => {
             // Set up node click handlers
@@ -268,7 +275,7 @@ export const QuantityGraph: React.FC<QuantityGraphProps> = ({
   return (
     <Container>
       <div className="mb-5">
-        <h4>Quantity Graph</h4>
+        <h4>Quantity Net</h4>
         {loading && (
           <Box
             sx={{
@@ -288,10 +295,11 @@ export const QuantityGraph: React.FC<QuantityGraphProps> = ({
         <Box
           sx={{
             border: "1px solid #ddd",
-            borderRadius: "4px",
+            //borderRadius: "1px",
             height: "auto",
             overflow: "auto",
           }}
+          className="BoxGraph"
         >
           <div id="graph"></div>
         </Box>
@@ -309,12 +317,8 @@ export const QuantityGraph: React.FC<QuantityGraphProps> = ({
       {!loading && (
         <div>
           <Leadtime
-            register_activity_Prop={
-              registerActivity ? registerActivity : undefined
-            }
-            placement_activity_Prop={
-              placementActivity ? placementActivity : undefined
-            }
+            register_activity_Prop={registerActivity}
+            placement_activity_Prop={placementActivity}
             userInputData_Prop={userInputData}
           />
         </div>
