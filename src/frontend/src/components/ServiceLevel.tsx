@@ -4,7 +4,7 @@ import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { Container, Stack } from "react-bootstrap";
 import Select from "react-select";
 import makeAnimated from "react-select/animated";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import { Box } from "@mui/system";
 import { LineChart } from "@mui/x-charts/LineChart";
 import ReactApexChart from "react-apexcharts";
@@ -175,6 +175,18 @@ export const ServiceLevel: React.FC<ServiceLevelProps> = ({
         chart: {
           height: 350,
           type: "radialBar" as "radialBar",
+          toolbar: {
+            show: true,
+            tools: {
+              download: true,
+              selection: false,
+              zoom: false,
+              zoomin: false,
+              zoomout: false,
+              pan: false,
+              reset: false,
+            },
+          },
         },
         plotOptions: {
           radialBar: {
@@ -210,16 +222,12 @@ export const ServiceLevel: React.FC<ServiceLevelProps> = ({
         }}
       >
         {/* Alpha Service Level Table */}
-        <Box sx={{ height: 400, width: "50%" }}>
+        <Box sx={{ height: 400, width: "70%" }}>
           <DataGrid
             rows={rows}
             columns={columns}
-            initialState={{
-              pagination: {
-                paginationModel: { pageSize: 5 },
-              },
-            }}
-            pageSizeOptions={[5]}
+            slots={{ toolbar: GridToolbar }}
+            initialState={{}}
             checkboxSelection
             disableRowSelectionOnClick
           />
@@ -227,7 +235,7 @@ export const ServiceLevel: React.FC<ServiceLevelProps> = ({
 
         {/* Alpha Service Level Pie (Radial Bar) Chart */}
         <div
-          style={{ width: "50%", display: "flex", justifyContent: "center" }}
+          style={{ width: "30%", display: "flex", justifyContent: "center" }}
         >
           <ReactApexChart
             options={chartState.options}
@@ -266,6 +274,18 @@ export const ServiceLevel: React.FC<ServiceLevelProps> = ({
       options: {
         chart: {
           type: "polarArea" as "polarArea",
+          toolbar: {
+            show: true,
+            tools: {
+              download: true,
+              selection: false,
+              zoom: false,
+              zoomin: false,
+              zoomout: false,
+              pan: false,
+              reset: false,
+            },
+          },
         },
         stroke: {
           colors: ["#fff"],
@@ -297,6 +317,18 @@ export const ServiceLevel: React.FC<ServiceLevelProps> = ({
         chart: {
           height: 350,
           type: "radialBar" as "radialBar", // type assertion needed
+          toolbar: {
+            show: true,
+            tools: {
+              download: true,
+              selection: false,
+              zoom: false,
+              zoomin: false,
+              zoomout: false,
+              pan: false,
+              reset: false,
+            },
+          },
         },
         plotOptions: {
           radialBar: {
@@ -325,7 +357,7 @@ export const ServiceLevel: React.FC<ServiceLevelProps> = ({
     // Return the two charts side by side in a flex container.
     return (
       <div style={{ display: "flex", gap: "10px" }}>
-        <div style={{ width: "500px", height: "400px" }}>
+        <div style={{ width: "550px", height: "400px" }}>
           <ReactApexChart
             options={polarChartState.options}
             series={polarChartState.series}
@@ -334,7 +366,7 @@ export const ServiceLevel: React.FC<ServiceLevelProps> = ({
             height="100%"
           />
         </div>
-        <div style={{ width: "500px", height: "400px" }}>
+        <div style={{ width: "450px", height: "400px" }}>
           <ReactApexChart
             options={pieChartState.options}
             series={pieChartState.series}

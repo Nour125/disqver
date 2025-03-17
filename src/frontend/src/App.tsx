@@ -20,14 +20,14 @@ const App: React.FC = () => {
   return (
     <div>
       <Helmet>
-        <title>DISQOVER</title>
+        <title>DISQVER</title>
         <link rel="shortcut icon" href="src/frontend/public/logo192.png" />
       </Helmet>
       <header>
         <nav className="navbar navbar-expand-md navbar-dark bg-dark">
           <div className="container">
             <a className="navbar-brand" href="/">
-              DISQOVER
+              <img src="/disqver-name-200;100.png" style={{ height: "35px" }} />
             </a>
           </div>
         </nav>

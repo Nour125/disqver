@@ -77,6 +77,7 @@ def clean_dataframe_for_json(df: pd.DataFrame) -> pd.DataFrame:
 def send_overview_data():
     # create a QEL object from the last uploaded file
     qel = load_qel_from_file(file_path=get_last_uploaded_file())
+    print(qel.item_types)
 
     # get Overview data from the qel
     overview = get_log_overview(qel)
@@ -276,7 +277,7 @@ def get_alpha_service_level(
     placement_events = qel.get_event_data_activity(placement_activity).reset_index()
     event_object = qel.e2o
     qop = qel.get_quantity_operations()
-    itemtyps = qel.item_types
+    itemtyps = qel.item_types_collection["Company Warehouse"]
 
     # Extract objects and timestamps for Place Replenishment Order
     temp1 = event_object[event_object["ocel_event_id"].isin(register_events["ocel_id"])]
@@ -335,7 +336,15 @@ def get_alpha_service_level(
     result["difference"] = result["QuantityArrived"].fillna(0) - result[
         "QuantityPlaced"
     ].fillna(0)
-    incomplete_orders = (result["difference"] < 0).sum()
+    result["difference"] = result["difference"].apply(lambda x: -x if x < 0 else x)
+    result["QuantityPlaced"] = result["QuantityPlaced"].apply(
+        lambda x: -x if x < 0 else x
+    )
+    result["QuantityArrived"] = result["QuantityArrived"].apply(
+        lambda x: -x if x < 0 else x
+    )
+
+    incomplete_orders = (result["difference"] > 0).sum()
     result = result.drop(columns=["delivered_time", "placed_time"])
 
     # Calculate Service Level
@@ -464,17 +473,6 @@ def get_beta_service_level(
     print(f"Beta Service Level (β): {overall_beta * 100:.2f}%")
 
     return beta_df, overall_beta
-
-
-print(
-    get_beta_service_level(
-        "Register incoming Customer Order",
-        "Pick and pack items for Customer Order",
-        "Planning System",
-        "Company Warehouse",
-        "Customer Order",
-    )
-)
 
 
 def get_service_level(

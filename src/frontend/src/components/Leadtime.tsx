@@ -10,7 +10,7 @@ import React, {
 import { Alert, Container, Stack } from "react-bootstrap";
 import Select from "react-select";
 import makeAnimated from "react-select/animated";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import { Box } from "@mui/system";
 import { LineChart } from "@mui/x-charts/LineChart";
 import ReactApexChart from "react-apexcharts";
@@ -180,17 +180,12 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
     return (
       <div key={selectedOptionsObject?.label}>
         <h3>{selectedOptionsObject?.label}</h3>
-        <Box sx={{ height: "100%", width: "100%" }}>
+        <Box sx={{ height: "400px", width: "100%" }}>
           <DataGrid
             rows={rows}
             columns={columns}
-            initialState={{
-              pagination: {
-                paginationModel: {
-                  pageSize: 5,
-                },
-              },
-            }}
+            slots={{ toolbar: GridToolbar }}
+            initialState={{}}
             pageSizeOptions={[5]}
             checkboxSelection
             disableRowSelectionOnClick
@@ -251,8 +246,20 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
     const allTimes = Object.values(data.lead_time_data.lead_time);
     const min = Math.min(...allTimes);
     const max = Math.max(...allTimes);
-    const binWidth = (max - min) / 10;
+
+    // Prevent division by zero if all times are the same
+    const binWidth = max === min ? 1 : (max - min) / 10;
     const bins = Array.from({ length: 11 }, (_, i) => min + i * binWidth);
+
+    // Helper function to convert seconds to day:hour:minutes format.
+    const formatSecondsToDHMS = (seconds: number): string => {
+      const days = Math.floor(seconds / (3600 * 24));
+      const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return `${days}:${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}`;
+    };
 
     const series = Object.entries(supplierLeadTimes).map(
       ([supplier, times]) => {
@@ -276,9 +283,13 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
         stacked: false,
       },
       xaxis: {
-        categories: bins.slice(0, -1).map((bin) => bin.toFixed(0)),
+        // Create interval labels in "day:hour:minutes-day:hour:minutes" format
+        categories: bins.slice(0, -1).map((bin, i) => {
+          const nextBin = bins[i + 1];
+          return `${formatSecondsToDHMS(bin)}-${formatSecondsToDHMS(nextBin)}`;
+        }),
         title: {
-          text: "Lead Time (seconds)",
+          text: "Lead Time Interval (day:hour:minutes)",
         },
       },
       yaxis: {
@@ -311,6 +322,7 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
       </div>
     );
   };
+
   //if (!leadtime) {
   // return <Container>Loading...</Container>;
 

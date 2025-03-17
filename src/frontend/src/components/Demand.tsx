@@ -323,7 +323,7 @@ export const Demand: React.FC<DemandProps> = ({
         },
         stroke: { curve: "stepline" },
         dataLabels: { enabled: false },
-        title: { text: "", align: "left" },
+        title: { text: "Item Level Development", align: "left" },
         markers: { hover: { sizeOffset: 4 } },
       }),
       [timestamps]
