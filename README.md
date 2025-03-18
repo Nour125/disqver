@@ -10,7 +10,7 @@
 [![React](https://img.shields.io/badge/React-%2320232a.svg?logo=react&logoColor=%2361DAFB)](https://react.dev/)
 [![React Bootstrap](https://img.shields.io/badge/React%20Bootstrap-712cf9)](https://react-bootstrap.netlify.app/)
 
-![DISQVER Usage GIF](demo.mp4)
+![DISQVER Usage GIF](demo-gif.gif)
 
 In the above demo video, a QEL is imported and its metrics analyzed.
 
