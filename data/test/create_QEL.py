@@ -668,7 +668,7 @@ COMMIT;
 # conn.commit()
 
 # Optionally, retrieve some data to verify the changes
-cur.execute("SELECT * FROM event;")
+# cur.execute("SELECT * FROM event;")
 
 # Close the connection when done
 conn.close()
@@ -721,5 +721,5 @@ def export_all_tables_to_latex(db_file, output_file="latex_tables.txt"):
 # Example usage
 db_file = "qel-example-v3.sqlite"
 
-# export_all_tables_to_latex(db_file)
+export_all_tables_to_latex(db_file)
 # Example usage

@@ -95,7 +95,7 @@ cur_original.execute(
     "SELECT * FROM event_object WHERE ocel_object_id IN (SELECT ocel_id FROM object_Delivery) AND ocel_event_id IN (SELECT ocel_id FROM event_IdentifyincomingDelivery);"
 )
 event_object_identifyincomingDelivery = cur_original.fetchall()
-# add
+
 
 # drop the tables
 # cur_original.execute("DROP TABLE IF EXISTS event_IdentifyincomingDelivery;")
@@ -111,17 +111,17 @@ for identifyincomingDelivery_id in identifyincomingDelivery_ids:
     )
 
 """
+"""
+for identifyincomingDelivery_id in identifyincomingDelivery_ids:
+    cur_original.execute(
+        "DELETE FROM event_object WHERE ocel_event_id = ?;",
+        (identifyincomingDelivery_id[0],),
+    )
+"""
 for UnloadDelivery_id in UnloadDelivery_ids:
     cur_original.execute(
         "DELETE FROM event WHERE ocel_id = ?;", (UnloadDelivery_id[0],)
     )
-
-
-"""for identifyincomingDelivery_id in identifyincomingDelivery_ids:
-    cur_original.execute(
-        "DELETE FROM event_object WHERE ocel_event_id = ?;",
-        (identifyincomingDelivery_id[0],),
-    )"""
 
 
 for UnloadDelivery_id in UnloadDelivery_ids:

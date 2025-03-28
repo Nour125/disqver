@@ -30,6 +30,9 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
   const [leadtime, setLeadtime] = useState<any>();
   const animatedComponents = makeAnimated();
   const [selectedOptionsObject, setSelectedOptionsObject] = useState<any>([]);
+  const [selectedOptionsAtrri, setSelectedOptionsAttri] = useState<any>([]);
+  const [optionsAtrri, setOptionsAttri] = useState<any>([]);
+
   useEffect(() => {
     if (register_activity_Prop && placement_activity_Prop) {
       if (
@@ -56,6 +59,25 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
   }, [register_activity_Prop, placement_activity_Prop]);
 
   useEffect(() => {
+    async function fetchObjectAttri() {
+      try {
+        const response = await axios.get(
+          `http://127.0.0.1:8000/objectattri/${selectedOptionsObject?.label}`
+        );
+        setOptionsAttri(response.data);
+      } catch (error: any) {
+        setSelectedOptionsObject(null);
+        if (error.response && error.response.status === 400) {
+          console.log("Invalid response structure");
+        } else {
+          console.log(error);
+        }
+      }
+    }
+    fetchObjectAttri();
+  }, [selectedOptionsObject]);
+
+  useEffect(() => {
     async function fetchLeadtime() {
       let registeractivity;
       let placementactivity;
@@ -74,10 +96,9 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
       }
       try {
         const response = await axios.get(
-          `http://127.0.0.1:8000/leadtime/${registeractivity}/${placementactivity}`
+          `http://127.0.0.1:8000/leadtime/${registeractivity}/${placementactivity}/${selectedOptionsAtrri.label}`
         );
         setLeadtime(response.data);
-        console.log(response.data);
       } catch (error: any) {
         setSelectedOptionsObject(null);
         if (error.response && error.response.status === 400) {
@@ -88,7 +109,7 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
       }
     }
     fetchLeadtime();
-  }, [selectedOptionsObject]);
+  }, [selectedOptionsObject, selectedOptionsAtrri]);
 
   function formatLeadTime(leadTimeInSeconds: number): string {
     const days = Math.floor(leadTimeInSeconds / (24 * 60 * 60));
@@ -147,6 +168,28 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
         onChange={setSelectedOptionsObject}
         value={selectedOptionsObject}
         placeholder="Select an order type"
+        isClearable={true}
+      />
+    );
+  }
+  function SelectAttritype() {
+    let options = optionsAtrri;
+    return (
+      <Select
+        closeMenuOnSelect={false}
+        components={animatedComponents}
+        options={
+          options
+            ? options.map((object: string | undefined) =>
+                object
+                  ? { value: object, label: object }
+                  : { value: "", label: "" }
+              )
+            : []
+        }
+        onChange={setSelectedOptionsAttri}
+        value={selectedOptionsAtrri}
+        placeholder="Select an order attribute"
         isClearable={true}
       />
     );
@@ -333,6 +376,7 @@ export const Leadtime: React.FC<LeadtimeProps> = ({
         <Container>
           <Stack gap={3}>
             <SelectOrdertype />
+            <SelectAttritype />
             <LeadtimeTable leadtime={leadtime} />
             <LeadTimeHistogram data={leadtime} />
           </Stack>

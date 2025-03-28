@@ -164,12 +164,12 @@ async def get_user_input():
 
 
 # define a GET route for leadtime data
-@app.get("/leadtime/{register_activity}/{placement_activity}")
-async def get_leadtime(register_activity: str, placement_activity: str):
+@app.get("/leadtime/{register_activity}/{placement_activity}/{attri}")
+async def get_leadtime(register_activity: str, placement_activity: str, attri: str):
     try:
         # Get the data
         merged_ro, item_for_object, supplier_for_object = get_lead_time(
-            register_activity, placement_activity
+            register_activity, placement_activity, attri
         )
 
         # Convert DataFrames to dictionaries with proper datetime handling
@@ -180,6 +180,19 @@ async def get_leadtime(register_activity: str, placement_activity: str):
         }
 
         return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# define a GET route for object attributes
+@app.get("/objectattri/{object_type}")
+async def get_object_attributes(object_type: str):
+    try:
+        # Get the data
+        object_attributes = get_object_attributes_data(object_type)
+
+        return object_attributes
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

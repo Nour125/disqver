@@ -162,7 +162,9 @@ def determin_demand_for_months(
 #############################################################
 
 
-def get_lead_time(register_activity: str, placement_activity: str) -> pd.DataFrame:
+def get_lead_time(
+    register_activity: str, placement_activity: str, attri: str
+) -> pd.DataFrame:
     """
     Calculate lead time based on the QuantityEventLog, register activity, and placement activity.
 
@@ -217,16 +219,16 @@ def get_lead_time(register_activity: str, placement_activity: str) -> pd.DataFra
     item_for_object = pd.merge(
         merged_ro, object_quantities, left_on="ro_id", right_on="ocel_id"
     )[object_quantities.columns]
-    if "supplier" in qel_objects.columns:
+    if attri in qel_objects.columns:
         supplier_for_object = pd.merge(
             merged_ro[["ro_id"]],
-            qel_objects[["ocel_id", "supplier"]],
+            qel_objects[["ocel_id", attri]],
             left_on="ro_id",
             right_on="ocel_id",
-        )[["ro_id", "supplier"]]
+        )[["ro_id", attri]]
     else:
         supplier_for_object = pd.DataFrame(
-            {"ro_id": merged_ro["ro_id"], "supplier": [None] * len(merged_ro)}
+            {"ro_id": merged_ro["ro_id"], attri: [None] * len(merged_ro)}
         )
 
     # Step 5: Calculate lead time
@@ -239,6 +241,13 @@ def get_lead_time(register_activity: str, placement_activity: str) -> pd.DataFra
         clean_dataframe_for_json(item_for_object),
         clean_dataframe_for_json(supplier_for_object),
     )
+
+
+def get_object_attributes_data(object_type: str):
+    # create a QEL object from the last uploaded file
+    qel = load_qel_from_file(file_path=get_last_uploaded_file())
+    object_attributes = qel._object_data[object_type].columns.to_list()
+    return object_attributes
 
 
 #############################################################
@@ -278,6 +287,7 @@ def get_alpha_service_level(
     event_object = qel.e2o
     qop = qel.get_quantity_operations()
     itemtyps = qel.item_types_collection["Company Warehouse"]
+    itemtyps.remove("Box")
 
     # Extract objects and timestamps for Place Replenishment Order
     temp1 = event_object[event_object["ocel_event_id"].isin(register_events["ocel_id"])]
@@ -316,6 +326,10 @@ def get_alpha_service_level(
         columns={"ocel_object_id": "ro_id", "ocel_time": "delivered_time"}
     )
     temp2 = temp2[["ro_id", "delivered_time", "ocel_id"]]
+
+    temp2 = temp2.sort_values(by=["delivered_time"]).drop_duplicates(
+        subset=["ro_id"], keep="first"
+    )
 
     # Match event IDs in temp2 with qop and aggregate item quantities
     temp2 = temp2.merge(
@@ -363,7 +377,6 @@ def get_beta_service_level(
     physical_cp: str,
     order_type: str,
 ):
-    import pandas as pd
 
     # Load data from the QEL system
     qel = load_qel_from_file(file_path=get_last_uploaded_file())
@@ -382,6 +395,7 @@ def get_beta_service_level(
 
     qop = qel.get_quantity_operations()
     itemtyps = qel.item_types
+    itemtyps.remove("Box")
 
     # ----- Process Register (Placement) Events for Bought Quantities -----
     temp1 = event_object[event_object["ocel_event_id"].isin(register_events["ocel_id"])]
@@ -396,11 +410,14 @@ def get_beta_service_level(
     temp1 = temp1[["ro_id", "placed_time", "ocel_id"]]
 
     # Filter qop to only include records from the planning control point
-    qop_planning = qop[qop["Collection"] == planing_cp]
+    # qop_planning = qop[qop["Collection"] == planing_cp]
 
     # Merge with filtered qop to get item-level quantities at placement
     temp1 = temp1.merge(
-        qop_planning[["Events"] + list(itemtyps)].groupby("Events").sum().reset_index(),
+        qop[["Events"] + list(itemtyps)]
+        .groupby("Events")
+        .sum()
+        .reset_index(),  # qop_planning
         left_on="ocel_id",
         right_on="Events",
         how="left",
@@ -421,11 +438,14 @@ def get_beta_service_level(
     temp2 = temp2[["ro_id", "delivered_time", "ocel_id"]]
 
     # Filter qop to only include records from the physical control point
-    qop_physical = qop[qop["Collection"] == physical_cp]
+    # qop_physical = qop[qop["Collection"] == physical_cp]
 
     # Merge with filtered qop to get item-level quantities at arrival
     temp2 = temp2.merge(
-        qop_physical[["Events"] + list(itemtyps)].groupby("Events").sum().reset_index(),
+        qop[["Events"] + list(itemtyps)]
+        .groupby("Events")
+        .sum()
+        .reset_index(),  # qop_physical
         left_on="ocel_id",
         right_on="Events",
         how="left",
@@ -491,6 +511,18 @@ def get_service_level(
         )
     else:
         raise ValueError(f"Service level type {service_level_type} not supported.")
+
+
+print(
+    get_service_level(
+        "Beta",
+        "Register incoming Customer Order",
+        "Pick and pack items for Customer Order",
+        "Planning System",
+        "Company Warehouse",
+        "Customer Order",
+    )
+)
 
 
 # discover qnet
