@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS "event" (
     "ocel_id" TEXT,
     "ocel_type" TEXT
 );
+
 INSERT INTO event VALUES('RK_1','RK');
 INSERT INTO event VALUES('RK_2','RK');
 INSERT INTO event VALUES('EM_1','EM');
@@ -55,57 +56,57 @@ CREATE TABLE IF NOT EXISTS "object_object" (
     "ocel_qualifier" TEXT
 );
 INSERT INTO object_object VALUES('AA1','P1','WP');
-                  
+
 
 CREATE TABLE IF NOT EXISTS "event_RK" (
     "ocel_id" TEXT,
     "ocel_time" TEXT,
     "total items" INTEGER
 );
-INSERT INTO event_RK VALUES('RK_1','1970-01-01 00:00:01',1);
-INSERT INTO event_RK VALUES('RK_2','1970-01-01 00:00:10',1);
+INSERT INTO event_RK VALUES('RK_1','2025-01-01 00:00:01',1);
+INSERT INTO event_RK VALUES('RK_2','2025-01-01 00:00:10',1);
 
 CREATE TABLE IF NOT EXISTS "event_LW" (
     "ocel_id" TEXT,
     "ocel_time" TEXT,
     "total items" INTEGER
 );
-INSERT INTO event_LW VALUES('LW_1','1970-01-01 00:00:02',1); 
-INSERT INTO event_LW VALUES('LW_2','1970-01-01 00:00:12',1);
-                  
+INSERT INTO event_LW VALUES('LW_1','2025-01-01 00:00:02',1);
+INSERT INTO event_LW VALUES('LW_2','2025-01-01 00:00:12',1);
+
 
 CREATE TABLE IF NOT EXISTS "event_EM" (
     "ocel_id" TEXT,
     "ocel_time" TEXT,
     "total items" INTEGER
 );
-INSERT INTO event_EM VALUES('EM_1','1970-01-01 00:00:03',1);
+INSERT INTO event_EM VALUES('EM_1','2025-01-01 00:00:03',1);
 
 CREATE TABLE IF NOT EXISTS "event_EP" (
     "ocel_id" TEXT,
     "ocel_time" TEXT,
     "total items" INTEGER
 );
-INSERT INTO event_EP VALUES('EP_1','1970-01-01 00:00:04',1);                   
+INSERT INTO event_EP VALUES('EP_1','2025-01-01 00:00:04',1);
 
-                  
+
 CREATE TABLE IF NOT EXISTS "event_BP" (
     "ocel_id" TEXT,
     "ocel_time" TEXT,
     "total items" INTEGER
 );
-INSERT INTO event_BP VALUES('BP_1','1970-01-01 00:00:05',1); 
+INSERT INTO event_BP VALUES('BP_1','2025-01-01 00:00:05',1);
 
-                  
+
 CREATE TABLE IF NOT EXISTS "event_LP" (
     "ocel_id" TEXT,
     "ocel_time" TEXT,
     "total items" INTEGER
 );
-INSERT INTO event_LP VALUES('LP_1','1970-01-01 00:00:06',1); 
+INSERT INTO event_LP VALUES('LP_1','2025-01-01 00:00:06',1);
 
-                  
- 
+
+
 
 CREATE TABLE IF NOT EXISTS "event_map_type" (
     "ocel_type" TEXT,
@@ -132,10 +133,10 @@ CREATE TABLE IF NOT EXISTS "object_WK" (
     "ocel_changed_field" TEXT,
     "item" INTEGER
 );
-INSERT INTO object_WK VALUES('WK1','1970-01-01 00:00:07',NULL,1);
-INSERT INTO object_WK VALUES('WK2','1970-01-01 00:00:14',NULL,1);
+INSERT INTO object_WK VALUES('WK1','2025-01-01 00:00:07',NULL,1);
+INSERT INTO object_WK VALUES('WK2','2025-01-01 00:00:14',NULL,1);
 
-                  
+
 
 CREATE TABLE IF NOT EXISTS "object_AA" (
     "ocel_id" TEXT,
@@ -143,8 +144,8 @@ CREATE TABLE IF NOT EXISTS "object_AA" (
     "ocel_changed_field" TEXT,
     "item" INTEGER
 );
-INSERT INTO object_AA VALUES('AA1','1970-01-01 00:00:08',NULL,1);
-                  
+INSERT INTO object_AA VALUES('AA1','2025-01-01 00:00:08',NULL,1);
+
 
 CREATE TABLE IF NOT EXISTS "object_P" (
     "ocel_id" TEXT,
@@ -152,10 +153,10 @@ CREATE TABLE IF NOT EXISTS "object_P" (
     "ocel_changed_field" TEXT,
     "item" INTEGER
 );
-INSERT INTO object_P VALUES('P1','1970-01-01 00:00:09',NULL,1);
+INSERT INTO object_P VALUES('P1','2025-01-01 00:00:09',NULL,1);
 
 
-                  
+
 CREATE TABLE IF NOT EXISTS "quantity_operations" (
     "ocel_id" TEXT,
     "ocel_cpid" TEXT,
@@ -164,7 +165,7 @@ CREATE TABLE IF NOT EXISTS "quantity_operations" (
     "Boxed-pizza"   INTEGER
 );
 INSERT INTO quantity_operations VALUES('init','cp1',NULL,NULL,NULL);
-                  
+
 INSERT INTO quantity_operations VALUES('RK_1','cp1',NULL,NULL,NULL);
 INSERT INTO quantity_operations VALUES('LW_1','cp1',10,NULL,NULL);
 INSERT INTO quantity_operations VALUES('EM_1','cp1',-10,10,NULL);
@@ -175,7 +176,7 @@ INSERT INTO quantity_operations VALUES('RK_2','cp1',NULL,NULL,NULL);
 INSERT INTO quantity_operations VALUES('LW_2','cp1',10,NULL,NULL);
 
 
-                  
+
 COMMIT;
 """)
 
@@ -188,7 +189,7 @@ print(cur.fetchall())
 
 # Close the connection when done
 conn.close()
-'''
+
 
 import sqlite3
 
@@ -449,3 +450,276 @@ for event_id in event_ids:
 conn_new.commit()
 conn_original.close()
 conn_new.close()
+'''
+
+import sqlite3
+
+
+# Create a connection to an in-memory SQLite database or to a file-based database
+conn = sqlite3.connect(
+    "qel-example-v3.sqlite"
+)  # Use ':memory:' for an in-memory database, or a file name for file-based
+
+# Create a cursor object to execute SQL commands
+cur = conn.cursor()
+
+# Execute the SQL commands
+cur.executescript(
+    """
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+
+CREATE TABLE IF NOT EXISTS "event" (
+    "ocel_id" TEXT,
+    "ocel_type" TEXT
+);
+INSERT INTO event VALUES('ev_1','Register Incoming Ingredients');  
+INSERT INTO event VALUES('ev_2','Register Incoming Ingredients');
+INSERT INTO event VALUES('ev_3','Check the quality');
+INSERT INTO event VALUES('ev_4','Check the quality');
+INSERT INTO event VALUES('ev_5','Accept and add to inventory');
+INSERT INTO event VALUES('ev_6','Do not accept and send back');
+INSERT INTO event VALUES('ev_7','Register pizza');
+INSERT INTO event VALUES('ev_8','Register pizza');
+INSERT INTO event VALUES('ev_9','Prepare pizza');
+INSERT INTO event VALUES('ev_10','Prepare pizza');
+INSERT INTO event VALUES('ev_11','Send pizza');
+INSERT INTO event VALUES('ev_12','Send pizza');
+INSERT INTO event VALUES('ev_13','Register pizza');
+INSERT INTO event VALUES('ev_14','Register pizza');
+INSERT INTO event VALUES('ev_15','Prepare pizza');
+INSERT INTO event VALUES('ev_16','Prepare pizza');
+INSERT INTO event VALUES('ev_17','Send pizza');
+INSERT INTO event VALUES('ev_18','Send pizza');
+
+CREATE TABLE IF NOT EXISTS "object" (
+    "ocel_id" TEXT,
+    "ocel_type" TEXT
+);
+INSERT INTO object VALUES('o_1','Ingredient-delivery');
+INSERT INTO object VALUES('o_2','Ingredient-delivery');
+INSERT INTO object VALUES('o_3','Pizza-order');
+INSERT INTO object VALUES('o_4','Pizza-order');
+INSERT INTO object VALUES('o_5','Pizza-order');
+INSERT INTO object VALUES('o_6','Pizza-order');
+
+
+CREATE TABLE IF NOT EXISTS "event_object" (
+    "ocel_event_id" TEXT,
+    "ocel_object_id" TEXT,
+    "ocel_qualifier" TEXT
+);
+
+INSERT INTO event_object VALUES('ev_1','o_1',NULL);
+INSERT INTO event_object VALUES('ev_3','o_1',NULL);
+INSERT INTO event_object VALUES('ev_5','o_1',NULL);
+
+
+INSERT INTO event_object VALUES('ev_2','o_2',NULL);
+INSERT INTO event_object VALUES('ev_4','o_2',NULL);
+INSERT INTO event_object VALUES('ev_6','o_2',NULL);
+
+INSERT INTO event_object VALUES('ev_7','o_3',NULL);
+INSERT INTO event_object VALUES('ev_9','o_3',NULL);
+INSERT INTO event_object VALUES('ev_11','o_3',NULL);
+
+INSERT INTO event_object VALUES('ev_8','o_4',NULL);
+INSERT INTO event_object VALUES('ev_10','o_4',NULL);
+INSERT INTO event_object VALUES('ev_12','o_4',NULL);
+
+INSERT INTO event_object VALUES('ev_13','o_5',NULL);
+INSERT INTO event_object VALUES('ev_15','o_5',NULL);
+INSERT INTO event_object VALUES('ev_17','o_5',NULL);
+
+INSERT INTO event_object VALUES('ev_14','o_6',NULL);
+INSERT INTO event_object VALUES('ev_16','o_6',NULL);
+INSERT INTO event_object VALUES('ev_18','o_6',NULL);
+                  
+
+CREATE TABLE IF NOT EXISTS "object_object" (
+    "ocel_source_id" TEXT,
+    "ocel_target_id" TEXT,
+    "ocel_qualifier" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS "event_register_incoming_ingredients" (
+    "ocel_id" TEXT,
+    "ocel_time" TEXT
+);
+INSERT INTO event_register_incoming_ingredients VALUES('ev_1','2025-01-01 00:00:01');
+INSERT INTO event_register_incoming_ingredients VALUES('ev_2','2025-01-01 00:00:10');
+
+CREATE TABLE IF NOT EXISTS "event_check_the_quality" (
+    "ocel_id" TEXT,
+    "ocel_time" TEXT
+);
+INSERT INTO event_check_the_quality VALUES('ev_3','2025-01-01 00:00:03');
+INSERT INTO event_check_the_quality VALUES('ev_4','2025-01-01 00:00:14');
+                  
+
+CREATE TABLE IF NOT EXISTS "event_accept_and_add_to_inventory" (
+    "ocel_id" TEXT,
+    "ocel_time" TEXT
+);
+INSERT INTO event_accept_and_add_to_inventory VALUES('ev_5','2025-01-01 00:00:05');
+
+CREATE TABLE IF NOT EXISTS "event_do_not_accept_and_send_back" (
+    "ocel_id" TEXT,
+    "ocel_time" TEXT
+);
+INSERT INTO event_do_not_accept_and_send_back VALUES('ev_6','2025-01-01 00:00:16');                  
+
+                  
+CREATE TABLE IF NOT EXISTS "event_register_pizza" (
+    "ocel_id" TEXT,
+    "ocel_time" TEXT
+);
+INSERT INTO event_register_pizza VALUES('ev_7','2025-01-01 00:00:07');
+INSERT INTO event_register_pizza VALUES('ev_8','2025-01-01 00:00:18');
+INSERT INTO event_register_pizza VALUES('ev_13','2025-02-01 00:00:07');
+INSERT INTO event_register_pizza VALUES('ev_14','2025-03-01 00:00:18');
+
+                  
+CREATE TABLE IF NOT EXISTS "event_prepare_pizza" (
+    "ocel_id" TEXT,
+    "ocel_time" TEXT
+);
+INSERT INTO event_prepare_pizza VALUES('ev_9','2025-01-01 00:00:09');
+INSERT INTO event_prepare_pizza VALUES('ev_10','2025-01-01 00:00:20');
+INSERT INTO event_prepare_pizza VALUES('ev_15','2025-02-01 00:00:09');
+INSERT INTO event_prepare_pizza VALUES('ev_16','2025-03-01 00:00:20');
+
+CREATE TABLE IF NOT EXISTS "event_send_pizza" (
+    "ocel_id" TEXT,
+    "ocel_time" TEXT
+);
+INSERT INTO event_send_pizza VALUES('ev_11','2025-01-01 00:00:11');
+INSERT INTO event_send_pizza VALUES('ev_12','2025-01-01 00:00:22');
+INSERT INTO event_send_pizza VALUES('ev_17','2025-02-01 00:00:11');
+INSERT INTO event_send_pizza VALUES('ev_18','2025-03-01 00:00:22');
+                  
+
+CREATE TABLE IF NOT EXISTS "event_map_type" (
+    "ocel_type" TEXT,
+    "ocel_type_map" TEXT
+);
+INSERT INTO event_map_type VALUES('Register Incoming Ingredients','register_incoming_ingredients');
+INSERT INTO event_map_type VALUES('Check the quality','check_the_quality');
+INSERT INTO event_map_type VALUES('Accept and add to inventory','accept_and_add_to_inventory');
+INSERT INTO event_map_type VALUES('Do not accept and send back','do_not_accept_and_send_back');
+INSERT INTO event_map_type VALUES('Register pizza','register_pizza');
+INSERT INTO event_map_type VALUES('Prepare pizza','prepare_pizza');
+INSERT INTO event_map_type VALUES('Send pizza','send_pizza');
+
+CREATE TABLE IF NOT EXISTS "object_map_type" (
+    "ocel_type" TEXT,
+    "ocel_type_map" TEXT
+);
+INSERT INTO object_map_type VALUES('Ingredient-delivery','Ingredient_delivery');
+INSERT INTO object_map_type VALUES('Pizza-order','pizza_order');
+
+CREATE TABLE IF NOT EXISTS "object_ingredient_delivery" (
+    "ocel_id" TEXT,
+    "ocel_time" TEXT
+);
+INSERT INTO object_ingredient_delivery VALUES('o_1','2025-01-01 00:00:01');
+INSERT INTO object_ingredient_delivery VALUES('o_2','2025-01-01 00:00:12');
+
+                  
+
+CREATE TABLE IF NOT EXISTS "object_pizza_order" (
+    "ocel_id" TEXT,
+    "ocel_time" TEXT
+);
+INSERT INTO object_pizza_order VALUES('o_3','2025-01-01 00:00:03');
+INSERT INTO object_pizza_order VALUES('o_4','2025-01-01 00:00:14');
+INSERT INTO object_pizza_order VALUES('o_5','2025-02-01 00:00:03');
+INSERT INTO object_pizza_order VALUES('o_6','2025-03-01 00:00:14');
+
+
+                  
+CREATE TABLE IF NOT EXISTS "quantity_operations" (
+    "ocel_id" TEXT,
+    "ocel_cpid" TEXT,
+    "Dough"   INTEGER,
+    "Tomato_sauce"   INTEGER,
+    "Cheese"   INTEGER
+);
+                  
+INSERT INTO quantity_operations VALUES('init','planning',NULL,NULL,NULL);
+INSERT INTO quantity_operations VALUES('init','physical',10,10,10);               
+                        
+INSERT INTO quantity_operations VALUES('ev_1','planning',10,10,10);
+INSERT INTO quantity_operations VALUES('ev_2','planning',5,5,5);     
+INSERT INTO quantity_operations VALUES('ev_5','physical',10,10,10);            
+INSERT INTO quantity_operations VALUES('ev_11','physical',-1,-2,-3);
+INSERT INTO quantity_operations VALUES('ev_11','planning',-1,-2,-3);
+INSERT INTO quantity_operations VALUES('ev_12','physical',-1,-2,-3);
+INSERT INTO quantity_operations VALUES('ev_12','planning',-1,-2,-3);
+INSERT INTO quantity_operations VALUES('ev_17','physical',-3,-7,-6);
+INSERT INTO quantity_operations VALUES('ev_18','physical',-2,-3,-3);
+
+          
+COMMIT;
+"""
+)
+
+# Commit changes and close the connection if you're done
+# conn.commit()
+
+# Optionally, retrieve some data to verify the changes
+# cur.execute("SELECT * FROM event;")
+
+# Close the connection when done
+conn.close()
+
+
+def export_all_tables_to_latex(db_file, output_file="latex_tables.txt"):
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+
+    # Get all table names
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = [row[0] for row in cursor.fetchall()]
+
+    latex_content = ""
+
+    for table in tables:
+        cursor.execute(f"PRAGMA table_info({table})")
+        columns = [col[1] for col in cursor.fetchall()]
+
+        cursor.execute(f"SELECT * FROM {table}")
+        rows = cursor.fetchall()
+
+        # Generate LaTeX table
+        latex_table = "\\begin{table}[h]\n\\centering\n"
+        latex_table += (
+            "\\begin{tabular}{" + " | ".join(["c"] * len(columns)) + "}\n\\hline\n"
+        )
+        latex_table += " & ".join(columns) + " \\\\\n\\hline\n"
+
+        for row in rows:
+            latex_table += " & ".join(map(str, row)) + " \\\\\n"
+
+        latex_table += (
+            "\\hline\n\\end{tabular}\n\\caption{Data from "
+            + table
+            + "}\n\\end{table}\n\n"
+        )
+
+        latex_content += latex_table
+
+    conn.close()
+
+    # Save to file
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(latex_content)
+
+    print(f"LaTeX tables saved to {output_file}")
+
+
+# Example usage
+db_file = "qel-example-v3.sqlite"
+
+export_all_tables_to_latex(db_file)
+# Example usage

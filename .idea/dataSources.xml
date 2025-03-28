@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+<<<<<<< HEAD
     <data-source source="LOCAL" name="Micky_mouse_QEL2" uuid="450e3ca7-f828-4101-8db1-03672ce92e53">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:C:\Uni\7.Semester\QRPM\disqover\data\Micky_mouse_QEL2.sqlite</jdbc-url>
+=======
+    <data-source source="LOCAL" name="Example_Inventory_Management_execution_log" uuid="789d5ccb-eb84-4b64-bde6-b104a56248f7">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:C:\Uni\7.Semester\QRPM\disqover\data\Example_Inventory_Management_execution_log.sqlite</jdbc-url>
+>>>>>>> dev
       <working-dir>$ProjectFileDir$</working-dir>
       <libraries>
         <library>
