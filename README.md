@@ -20,7 +20,10 @@ Welcome to **DISQVER** (discovering mertircs), a web app for inventory mangament
 
 DISQVER's main features are
 
--
+- Displaying the demand
+- Displaying the item-level development
+- Calculating lead time
+- Calculating the $\alpha$ and $\beta$ service levels
 
 The project consists of
 
